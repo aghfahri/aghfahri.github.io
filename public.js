@@ -1,180 +1,57 @@
-/* AGHFAHRI — halaman publik */
-(function () {
-  'use strict';
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Agung Fahri Husaeni</title>
+  <meta name="description" content="Halaman resmi Agung Fahri Husaeni: tautan, formulir, dan hasilnya.">
+  <script>
+    /* Pasang tema sebelum halaman tampil supaya tidak berkedip. */
+    (function () {
+      try {
+        var p = localStorage.getItem('tema') || localStorage.getItem('tema_def') || 'auto';
+        var dark = p === 'dark' || (p === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches);
+        document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+      } catch (e) {}
+    })();
+  </script>
+  <link rel="icon" href="assets/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="assets/favicon-192.png">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <meta name="theme-color" content="#121a33">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&display=swap">
+  <link rel="stylesheet" href="style.css?v=5">
+</head>
+<body>
+  <div class="splash" id="splash" role="status" aria-label="Memuat">
+    <div class="loader" aria-hidden="true"><span class="ln"></span><span class="sweep"></span></div>
+  </div>
+  <main class="wrap">
+    <header class="hero">
+      <div class="hero-actions">
+        <a class="icon-btn" id="adminLink" href="admin.html" aria-label="Masuk admin" title="Masuk admin"></a>
+        <button class="icon-btn theme-btn" id="themeBtn" type="button" aria-label="Ganti tema terang atau gelap"></button>
+      </div>
+      <div class="avatar"><img src="assets/logo-disc.png" alt="" width="108" height="108"></div>
+      <h1 id="title">AGUNG FAHRI HUSAENI</h1>
+      <p id="subtitle">Official Page</p>
+    </header>
 
-  const $ = function (id) { return document.getElementById(id); };
-  const el = App.el;
-  const CACHE_KEY = 'pub_cache_v1';
-  let data = null;
+    <nav class="crumb" id="crumb" aria-label="Navigasi folder" hidden>
+      <a id="back" href="#/"></a>
+      <h2 id="crumbTitle"></h2>
+    </nav>
 
-  // Tombol tema: ikon bulan dan matahari, CSS memilih yang tampil.
-  const themeBtn = $('themeBtn');
-  themeBtn.append(App.svg('moon', 'moon'), App.svg('sun', 'sun'));
-  themeBtn.addEventListener('click', App.theme.toggle);
-  $('adminLink').append(App.svg('user'));
+    <ul class="list" id="list"></ul>
+    <div id="state"></div>
+    <noscript><p class="state"><strong>JavaScript dimatikan.</strong>Aktifkan JavaScript untuk melihat daftar tautan.</p></noscript>
+  </main>
 
-  // Daftar terakhir disimpan di perangkat, jadi halaman langsung tampil
-  // sementara Apps Script (yang lambat) menyiapkan data terbaru.
-  function readCache() {
-    try { return JSON.parse(localStorage.getItem(CACHE_KEY)); } catch (e) { return null; }
-  }
-  function writeCache(d) {
-    try { localStorage.setItem(CACHE_KEY, JSON.stringify(d)); } catch (e) { /* abaikan */ }
-  }
-
-  function currentFolderId() {
-    const m = /^#\/f\/([\w-]+)$/.exec(location.hash);
-    return m ? m[1] : '';
-  }
-
-  function applySettings(s) {
-    $('title').textContent = s.judul;
-    $('subtitle').textContent = s.subjudul;
-    $('subtitle').hidden = !s.subjudul;
-    App.theme.setDefault(s.tema);
-  }
-
-  function tile(item, count) {
-    const a = el('a', 'tile tile-' + item.tipe);
-    let closed = false;
-    if (item.tipe === 'folder') {
-      a.href = '#/f/' + item.id;
-    } else if (item.tipe === 'form') {
-      if (!item.form || !item.form.slug) return null;
-      a.href = 'form.html?f=' + encodeURIComponent(item.form.slug);
-      const now = Date.now();
-      closed = item.form.status !== 'buka' ||
-        (item.form.buka && now < item.form.buka) || (item.form.tutup && now > item.form.tutup);
-    } else {
-      const u = App.safeUrl(item.url);
-      if (!u) return null;
-      a.href = u;
-      if (/^https?:/i.test(u)) {
-        a.target = '_blank';
-        a.rel = 'noopener noreferrer';
-      }
-    }
-    a.addEventListener('click', function () { App.ping(item.id); });
-
-    a.append(App.icon(item), el('span', 'label', item.judul));
-    if (item.tipe === 'folder') {
-      a.append(el('span', 'count', count + ' item'), App.svg('chevron', 'trail'));
-    } else if (item.tipe === 'form') {
-      if (closed) a.append(el('span', 'count', 'Ditutup'));
-      a.append(App.svg('chevron', 'trail'));
-    } else {
-      a.append(App.svg('arrow', 'trail'));
-    }
-    const li = el('li');
-    li.append(a);
-    return li;
-  }
-
-  function showState(title, text, retry) {
-    const box = $('state');
-    box.replaceChildren();
-    const wrap = el('div', 'state');
-    wrap.append(el('strong', '', title));
-    if (text) wrap.append(document.createTextNode(text));
-    if (retry) {
-      const b = el('button', 'btn', 'Coba lagi');
-      b.type = 'button';
-      b.addEventListener('click', load);
-      wrap.append(document.createElement('br'), b);
-    }
-    box.append(wrap);
-  }
-
-  function clearState() { $('state').replaceChildren(); }
-
-  function showSkeleton() {
-    const frag = document.createDocumentFragment();
-    for (let i = 0; i < 4; i++) {
-      const li = el('li');
-      li.append(el('div', 'skel'));
-      frag.append(li);
-    }
-    $('list').replaceChildren(frag);
-  }
-
-  function render() {
-    if (!data) return;
-    const items = data.items;
-    const folderId = currentFolderId();
-    const folder = folderId
-      ? items.filter(function (i) { return i.id === folderId && i.tipe === 'folder'; })[0]
-      : null;
-
-    if (folderId && !folder) { // folder sudah dihapus atau disembunyikan
-      location.hash = '#/';
-      return;
-    }
-
-    const crumb = $('crumb');
-    crumb.hidden = !folder;
-    if (folder) {
-      $('crumbTitle').textContent = folder.judul;
-      const back = $('back');
-      back.href = folder.parent_id ? '#/f/' + folder.parent_id : '#/';
-      back.replaceChildren(App.svg('back'), document.createTextNode('Kembali'));
-    }
-    document.title = (folder ? folder.judul + ' — ' : '') + data.settings.judul;
-
-    const counts = {};
-    items.forEach(function (i) { counts[i.parent_id] = (counts[i.parent_id] || 0) + 1; });
-
-    const nodes = items
-      .filter(function (i) { return i.parent_id === folderId; })
-      .map(function (i) { return tile(i, counts[i.id] || 0); })
-      .filter(Boolean);
-
-    $('list').replaceChildren.apply($('list'), nodes);
-    if (nodes.length) {
-      clearState();
-    } else if (folder) {
-      showState('Folder ini masih kosong.', 'Belum ada isi yang ditampilkan di sini.');
-    } else {
-      showState('Belum ada tautan.', 'Halaman ini akan terisi setelah admin menambahkan tautan.');
-    }
-  }
-
-  async function load() {
-    const cached = readCache();
-    if (cached && cached.settings && Array.isArray(cached.items)) {
-      data = cached;
-      applySettings(data.settings);
-      render();
-      App.splash.hide(700);
-    } else {
-      clearState();
-      showSkeleton();
-    }
-
-    try {
-      const fresh = await App.get({ action: 'public' });
-      writeCache(fresh);
-      if (!cached || JSON.stringify(cached) !== JSON.stringify(fresh)) {
-        data = fresh;
-        applySettings(fresh.settings);
-        render();
-      }
-      App.splash.hide(1100);
-    } catch (err) {
-      App.splash.hide(400);
-      if (cached) return; // tetap tampilkan daftar tersimpan
-      $('list').replaceChildren();
-      if (err.code === 'CONFIG') {
-        showState('Halaman belum disambungkan.', 'Isi API_URL di config.js dengan URL Web App Apps Script.');
-      } else {
-        showState('Daftar tautan belum bisa dimuat.', err.message, true);
-      }
-    }
-  }
-
-  window.addEventListener('hashchange', function () {
-    render();
-    window.scrollTo(0, 0);
-  });
-
-  load();
-})();
+  <script src="config.js?v=5"></script>
+  <script src="common.js?v=5"></script>
+  <script src="public.js?v=5"></script>
+</body>
+</html>
