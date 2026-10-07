@@ -118,9 +118,12 @@
     }
   }
 
+  // Parameter waktu dan cache: 'no-store' mencegah browser memakai balasan lama,
+  // jadi perubahan dari admin langsung terlihat tanpa muat ulang paksa.
   App.get = async function (params) {
     needConfig();
-    return readResponse(fetch(CFG.API_URL + '?' + new URLSearchParams(params)));
+    const query = new URLSearchParams(Object.assign({}, params, { t: Date.now() }));
+    return readResponse(fetch(CFG.API_URL + '?' + query, { cache: 'no-store' }));
   };
 
   // POST memakai text/plain agar browser tidak mengirim preflight CORS yang tidak didukung Apps Script.
