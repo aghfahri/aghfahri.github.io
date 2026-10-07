@@ -66,6 +66,7 @@
 
   function setBusy(button, busy) {
     button.disabled = busy;
+    button.classList.toggle('is-busy', busy);
   }
 
   // ── Struktur pohon ──
@@ -559,6 +560,10 @@
   $('passwordForm').addEventListener('submit', submitPassword);
 
   async function boot() {
+    try { await boot2(); } finally { App.splash.hide(1000); }
+  }
+
+  async function boot2() {
     if (!App.configured()) {
       showLogin('config.js belum diisi dengan URL Web App.');
       $('loginBtn').disabled = true;

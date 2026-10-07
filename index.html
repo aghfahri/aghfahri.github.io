@@ -15,17 +15,25 @@
       } catch (e) {}
     })();
   </script>
+  <link rel="icon" href="assets/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="assets/favicon-192.png">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <meta name="theme-color" content="#121a33">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&display=swap">
-  <link rel="stylesheet" href="style.css?v=3">
+  <link rel="stylesheet" href="style.css?v=4">
 </head>
 <body>
+  <div class="splash" id="splash" role="status" aria-label="Memuat">
+    <div class="loader" aria-hidden="true"><span class="ln"></span><span class="sweep"></span></div>
+  </div>
   <main class="wrap">
     <header class="hero">
       <button class="icon-btn theme-btn" id="themeBtn" type="button" aria-label="Ganti tema terang atau gelap"></button>
+      <div class="avatar"><img src="assets/logo-disc.png" alt="" width="108" height="108"></div>
       <h1 id="title">AGUNG FAHRI HUSAENI</h1>
-      <span class="rule" aria-hidden="true"></span>
       <p id="subtitle">Official Page</p>
     </header>
 
@@ -39,8 +47,8 @@
     <noscript><p class="state"><strong>JavaScript dimatikan.</strong>Aktifkan JavaScript untuk melihat daftar tautan.</p></noscript>
   </main>
 
-  <script src="config.js?v=3"></script>
-  <script src="common.js?v=3"></script>
-  <script src="public.js?v=3"></script>
+  <script src="config.js?v=4"></script>
+  <script src="common.js?v=4"></script>
+  <script src="public.js?v=4"></script>
 </body>
 </html>

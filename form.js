@@ -392,7 +392,7 @@
       nav.append(n);
     } else {
       const s = el('button', 'btn btn-primary', 'Kirim jawaban'); s.type = 'button';
-      s.disabled = busy;
+      s.disabled = busy; s.classList.toggle('is-busy', busy);
       s.addEventListener('click', submit);
       nav.append(s);
     }
@@ -488,16 +488,20 @@
   }
 
   async function load() {
+    const first = !def;
     phase = 'load';
     $('fhead').hidden = true;
     if (!/^[a-z0-9-]{1,60}$/.test(slug)) {
+      App.splash.hide(400);
       setStage(msgCard('Form tidak ditemukan.', 'Alamat form tidak lengkap atau salah.'));
       return;
     }
     setStage(el('div', 'skel'));
     try {
       def = await App.get({ action: 'form', f: slug });
+      if (first) App.splash.hide(1100);
     } catch (e) {
+      App.splash.hide(400);
       if (e.code === 'NOTFOUND') setStage(msgCard('Form tidak ditemukan.', 'Form ini tidak ada atau sudah dihapus.'));
       else if (e.code === 'CONFIG') setStage(msgCard('Halaman belum disambungkan.', 'Isi API_URL di config.js.'));
       else setStage(msgCard('Form belum bisa dimuat.', e.message, true));

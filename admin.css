@@ -206,3 +206,77 @@ textarea.input { min-height: 3rem; resize: vertical; font: inherit; }
 .save-msg.ok { color: var(--ink); }
 .blocks { margin-bottom: 0.75rem; }
 .btn svg { width: 1rem; height: 1rem; flex: none; }
+
+/* ═══ Tampilan modern ═══ */
+.shell { padding-top: 1.25rem; }
+.card { border-radius: var(--r-lg); box-shadow: var(--shadow); padding: 1.35rem; }
+.card h1, .card h2 { letter-spacing: -0.02em; }
+
+.bar { margin-bottom: 1.1rem; }
+.brand { display: flex; align-items: center; gap: 0.7rem; }
+.brand img { width: 2.5rem; height: 2.5rem; border-radius: 50%; box-shadow: 0 0 0 2px var(--accent); background: #111a33; }
+.bar h1 { font-size: 1.35rem; }
+.bar-actions .btn { min-height: 2.4rem; padding: 0.3rem 0.9rem; font-size: 0.88rem; }
+.bar-actions .icon-btn { width: 2.4rem; height: 2.4rem; }
+
+.login { text-align: center; padding: 2rem 1.5rem; }
+.login form { text-align: left; }
+.login-logo { display: block; width: 4.5rem; height: 4.5rem; margin: 0 auto 1rem; border-radius: 50%; box-shadow: 0 0 0 3px var(--accent), var(--shadow-up); background: #111a33; animation: pop 0.6s var(--ease) both; }
+.login h1 { margin-bottom: 1.25rem; }
+
+/* Tab berbentuk saklar geser */
+.tabs {
+  position: sticky; top: 0.5rem; z-index: 20;
+  display: flex; gap: 0.2rem; padding: 0.25rem;
+  margin-bottom: 1.1rem; overflow-x: auto; scrollbar-width: none;
+  border: 1px solid var(--line); border-radius: 99px;
+  background: color-mix(in srgb, var(--surface) 82%, transparent);
+  -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+  box-shadow: var(--shadow);
+}
+.tabs::-webkit-scrollbar { display: none; }
+.tab { flex: 1 0 auto; padding: 0.5rem 1rem; border: 0; border-radius: 99px; font-size: 0.92rem; transition: background-color 0.2s, color 0.2s; }
+.tab:hover { color: var(--ink); }
+.tab[aria-selected="true"] { background: var(--ink); color: var(--bg); border-bottom: 0; box-shadow: 0 4px 12px -6px var(--ink); }
+.tab:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+.input { border-radius: var(--r-sm); min-height: 2.75rem; background: var(--surface); transition: border-color 0.15s, box-shadow 0.15s; }
+.input:hover { border-color: color-mix(in srgb, var(--ink) 40%, var(--line)); }
+.input:focus { outline: none; border-color: var(--ink); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 45%, transparent); }
+.input:focus-visible { outline: none; }
+.field label { font-size: 0.9rem; }
+.check input { accent-color: var(--accent); }
+
+.row-head { border-radius: var(--r-md); padding: 0.55rem; box-shadow: var(--shadow); transition: box-shadow 0.2s, border-color 0.2s; }
+.row-head:hover { border-color: color-mix(in srgb, var(--ink) 35%, var(--line)); }
+.row[data-tipe="folder"] > .row-head { box-shadow: inset 4px 0 0 var(--accent), var(--shadow); }
+.row[data-tipe="form"] > .row-head .icon { background: var(--accent); color: var(--on-accent); }
+.tree .tree { border-left-color: color-mix(in srgb, var(--accent) 60%, var(--line)); }
+.row-head .icon-btn { border-radius: var(--r-sm); box-shadow: none; }
+.empty { border-radius: var(--r-lg); background: color-mix(in srgb, var(--surface) 60%, transparent); }
+
+.switch .track { background: color-mix(in srgb, var(--ink) 22%, var(--line)); }
+.switch input:checked + .track { background: var(--accent); }
+
+dialog { border-radius: 1.5rem; box-shadow: 0 30px 80px -20px rgba(0, 0, 0, 0.5); animation: pop 0.3s var(--ease); }
+dialog::backdrop { -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); background: rgba(10, 16, 32, 0.5); }
+#toast { border-radius: 99px; padding: 0.7rem 1.2rem; box-shadow: var(--shadow-up); }
+
+.card.fm { transition: box-shadow 0.2s, transform 0.2s var(--ease); }
+.card.fm:hover { box-shadow: var(--shadow-up); }
+.qcard { border-radius: var(--r-md); background: color-mix(in srgb, var(--bg) 70%, var(--surface)); }
+.blk { border-left-width: 5px; }
+.q-no { background: var(--accent); color: var(--on-accent); }
+.save-bar { border-top: 0; background: color-mix(in srgb, var(--bg) 80%, transparent); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); border-radius: var(--r-lg) var(--r-lg) 0 0; }
+.rb, .btn.sm { border-radius: 99px; }
+.badge.on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.fm-acts .btn { min-height: 2.3rem; }
+.clicks { background: var(--tint); border-radius: 99px; padding: 0.1rem 0.6rem; color: var(--muted); font-size: 0.78rem; font-weight: 600; }
+
+/* Baris item tidak boleh patah ke dua baris di layar sempit */
+.row-head { flex-wrap: nowrap; gap: 0.4rem; }
+.row-main { flex: 1 1 0; }
+.row-head .icon { width: 2.5rem; height: 2.5rem; }
+.row-head .icon-btn { width: 2.1rem; height: 2.1rem; }
+.grip { width: 1.4rem; }
+@media (max-width: 520px) { .clicks { display: none; } }

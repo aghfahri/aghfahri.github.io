@@ -166,6 +166,23 @@
     return d.toLocaleString('id-ID', { dateStyle: 'long', timeStyle: 'short' });
   };
 
+  // ── Layar pembuka berlogo ──
+  App.splash = {
+    t0: performance.now(),
+    hide: function (minMs) {
+      const s = document.getElementById('splash');
+      if (!s || s.dataset.leaving) return;
+      s.dataset.leaving = '1';
+      const wait = Math.max(0, (minMs || 0) - (performance.now() - App.splash.t0));
+      setTimeout(function () {
+        s.classList.add('out');
+        setTimeout(function () { s.remove(); }, 700);
+      }, wait);
+    }
+  };
+  // Jaga-jaga: layar pembuka tidak boleh menutup halaman selamanya.
+  setTimeout(function () { App.splash.hide(0); }, 15000);
+
   // ── Server ──
   App.configured = function () {
     return /^https:\/\/script\.google\.com\//.test(CFG.API_URL || '');

@@ -18,6 +18,8 @@
   ];
   const CHOICE = ['pilihan', 'centang', 'dropdown'];
 
+  function loadingBox() { const b = el('div', 'loading-box'); b.append(el('span', 'spin'), document.createTextNode('Memuat…')); return b; }
+
   let forms = [];
   let model = null;     // {form, blocks}
   let dirty = false;
@@ -163,7 +165,7 @@
   // ═══════════ DAFTAR FORM ═══════════
   async function loadList() {
     const host = $('formsList');
-    if (!forms.length) host.replaceChildren(mk('div', 'empty', 'Memuat…'));
+    if (!forms.length) host.replaceChildren(loadingBox());
     try {
       const d = await A.call('admin.forms.list');
       forms = d.forms;

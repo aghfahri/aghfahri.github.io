@@ -6,11 +6,13 @@
   const el = App.el;
   const $ = function (id) { return document.getElementById(id); };
 
+  function loadingBox() { const b = el('div', 'loading-box'); b.append(el('span', 'spin'), document.createTextNode('Memuat…')); return b; }
+
   let lists = [];
 
   async function loadLists() {
     const host = $('namesLists');
-    if (!lists.length) host.replaceChildren(el('div', 'empty', 'Memuat…'));
+    if (!lists.length) host.replaceChildren(loadingBox());
     try {
       lists = (await A.call('admin.names.lists')).lists;
       renderLists();

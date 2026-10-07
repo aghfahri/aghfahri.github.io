@@ -143,6 +143,7 @@
       data = cached;
       applySettings(data.settings);
       render();
+      App.splash.hide(700);
     } else {
       clearState();
       showSkeleton();
@@ -156,7 +157,9 @@
         applySettings(fresh.settings);
         render();
       }
+      App.splash.hide(1100);
     } catch (err) {
+      App.splash.hide(400);
       if (cached) return; // tetap tampilkan daftar tersimpan
       $('list').replaceChildren();
       if (err.code === 'CONFIG') {

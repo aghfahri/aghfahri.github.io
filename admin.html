@@ -14,17 +14,26 @@
       } catch (e) {}
     })();
   </script>
+  <link rel="icon" href="assets/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="assets/favicon-192.png">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <meta name="theme-color" content="#121a33">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&display=swap">
-  <link rel="stylesheet" href="style.css?v=3">
-  <link rel="stylesheet" href="admin.css?v=3">
+  <link rel="stylesheet" href="style.css?v=4">
+  <link rel="stylesheet" href="admin.css?v=4">
 </head>
 <body>
+  <div class="splash" id="splash" role="status" aria-label="Memuat">
+    <div class="loader" aria-hidden="true"><span class="ln"></span><span class="sweep"></span></div>
+  </div>
   <div class="shell">
 
     <!-- Masuk -->
     <section class="card login" id="loginView" hidden>
+      <img class="login-logo" src="assets/logo-disc.png" alt="" width="72" height="72">
       <h1>Masuk admin</h1>
       <form id="loginForm">
         <div class="field">
@@ -39,7 +48,7 @@
     <!-- Panel -->
     <section id="appView" hidden>
       <header class="bar">
-        <h1>Panel admin</h1>
+        <div class="brand"><img src="assets/logo-disc.png" alt="" width="40" height="40"><h1>Panel admin</h1></div>
         <div class="bar-actions">
           <a class="btn" href="./" target="_blank" rel="noopener">Lihat halaman</a>
           <button class="icon-btn theme-btn" id="themeBtn" type="button" aria-label="Ganti tema terang atau gelap"></button>
@@ -185,10 +194,10 @@
   <div id="toast" role="status" aria-live="polite"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15/Sortable.min.js"></script>
-  <script src="config.js?v=3"></script>
-  <script src="common.js?v=3"></script>
-  <script src="admin.js?v=3"></script>
-  <script src="admin-forms.js?v=3"></script>
-  <script src="admin-names.js?v=3"></script>
+  <script src="config.js?v=4"></script>
+  <script src="common.js?v=4"></script>
+  <script src="admin.js?v=4"></script>
+  <script src="admin-forms.js?v=4"></script>
+  <script src="admin-names.js?v=4"></script>
 </body>
 </html>
