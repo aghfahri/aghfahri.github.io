@@ -1,0 +1,556 @@
+/* AGHFAHRI — panel admin (tahap 1: link, folder, pengaturan) */
+(function () {
+  'use strict';
+
+  const $ = function (id) { return document.getElementById(id); };
+  const el = App.el;
+  const TOKEN_KEY = 'admin_token';
+
+  const state = {
+    items: [],
+    settings: {},
+    maxDepth: 3,
+    editingId: null,
+    editingTipe: 'link',
+    sortables: []
+  };
+
+  const byId = function (id) {
+    return state.items.filter(function (i) { return i.id === id; })[0];
+  };
+
+  // ── Sesi ──
+  function getToken() {
+    try { return sessionStorage.getItem(TOKEN_KEY) || ''; } catch (e) { return ''; }
+  }
+  function setToken(t) {
+    try {
+      if (t) sessionStorage.setItem(TOKEN_KEY, t); else sessionStorage.removeItem(TOKEN_KEY);
+    } catch (e) { /* abaikan */ }
+  }
+
+  async function call(action, payload) {
+    try {
+      return await App.post(Object.assign({ action: action, token: getToken() }, payload || {}));
+    } catch (err) {
+      if (err.code === 'AUTH') {
+        setToken('');
+        showLogin('Sesi berakhir. Silakan masuk lagi.');
+      }
+      throw err;
+    }
+  }
+
+  // ── Tampilan umum ──
+  let toastTimer;
+  function toast(message, isError) {
+    const t = $('toast');
+    t.textContent = message;
+    t.className = 'show' + (isError ? ' error' : '');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.className = ''; }, 3200);
+  }
+
+  function showLogin(message) {
+    $('appView').hidden = true;
+    $('loginView').hidden = false;
+    $('loginMsg').textContent = message || '';
+    $('pw').focus();
+  }
+
+  function showApp() {
+    $('loginView').hidden = true;
+    $('appView').hidden = false;
+  }
+
+  function setBusy(button, busy) {
+    button.disabled = busy;
+  }
+
+  // ── Struktur pohon ──
+  function groupByParent() {
+    const map = new Map();
+    state.items.forEach(function (i) {
+      if (!map.has(i.parent_id)) map.set(i.parent_id, []);
+      map.get(i.parent_id).push(i);
+    });
+    map.forEach(function (arr) { arr.sort(function (a, b) { return a.urutan - b.urutan; }); });
+    return map;
+  }
+
+  function folderHeight(id, map) {
+    const kids = (map.get(id) || []).filter(function (i) { return i.tipe === 'folder'; });
+    return 1 + kids.reduce(function (mx, k) { return Math.max(mx, folderHeight(k.id, map)); }, 0);
+  }
+
+  function descendants(id, map) {
+    const out = [];
+    (map.get(id) || []).forEach(function (k) {
+      out.push(k.id);
+      descendants(k.id, map).forEach(function (d) { out.push(d); });
+    });
+    return out;
+  }
+
+  function payload(it, over) {
+    return Object.assign({
+      id: it.id, tipe: it.tipe, judul: it.judul, url: it.url,
+      ikon_jenis: it.ikon_jenis, ikon_isi: it.ikon_isi,
+      parent_id: it.parent_id, tampil: it.tampil
+    }, over || {});
+  }
+
+  function metaText(it, map) {
+    if (it.tipe === 'folder') return (map.get(it.id) || []).length + ' isi';
+    return it.url.replace(/^(https?:\/\/|mailto:|tel:)/i, '').replace(/\/$/, '');
+  }
+
+  // ── Render pohon ──
+  function iconButton(name, label, onClick, extra) {
+    const b = el('button', 'icon-btn' + (extra ? ' ' + extra : ''));
+    b.type = 'button';
+    b.setAttribute('aria-label', label);
+    b.title = label;
+    b.append(App.svg(name));
+    b.addEventListener('click', onClick);
+    return b;
+  }
+
+  function switchFor(it) {
+    const label = el('label', 'switch');
+    label.title = 'Tampilkan di halaman publik';
+    const input = el('input');
+    input.type = 'checkbox';
+    input.checked = it.tampil;
+    input.setAttribute('aria-label', 'Tampilkan "' + it.judul + '" di halaman publik');
+    input.addEventListener('change', function () { toggleVisible(it, input); });
+    label.append(input, el('span', 'track'));
+    return label;
+  }
+
+  function renderRow(it, map, level) {
+    const li = el('li', 'row' + (it.tampil ? '' : ' is-hidden'));
+    li.dataset.id = it.id;
+    li.dataset.tipe = it.tipe;
+
+    const head = el('div', 'row-head');
+    const grip = el('span', 'grip');
+    grip.title = 'Seret untuk memindahkan';
+    grip.append(App.svg('grip'));
+
+    const title = el('div', 'row-title');
+    title.append(el('span', '', it.judul));
+    if (!it.tampil) title.append(el('span', 'badge', 'Disembunyikan'));
+    const main = el('div', 'row-main');
+    main.append(title, el('div', 'row-meta', metaText(it, map)));
+
+    const clicks = el('span', 'clicks', it.klik + ' klik');
+    clicks.title = 'Jumlah klik pengunjung';
+
+    head.append(
+      grip,
+      App.icon(it),
+      main,
+      clicks,
+      switchFor(it),
+      iconButton('edit', 'Edit ' + it.judul, function () { openItemDialog(it.tipe, it); }),
+      iconButton('trash', 'Hapus ' + it.judul, function () { removeItem(it, map); }, 'danger')
+    );
+    li.append(head);
+
+    // Folder selalu punya daftar anak sendiri supaya bisa menjadi tujuan seret.
+    if (it.tipe === 'folder') li.append(renderList(it.id, map, level + 1));
+    return li;
+  }
+
+  function renderList(parentId, map, level) {
+    const ul = el('ul', 'tree');
+    ul.dataset.parent = parentId;
+    ul.dataset.level = String(level);
+    (map.get(parentId) || []).forEach(function (it) { ul.append(renderRow(it, map, level)); });
+    return ul;
+  }
+
+  function renderTree() {
+    state.sortables.forEach(function (s) { s.destroy(); });
+    state.sortables = [];
+
+    const host = $('tree');
+    host.replaceChildren();
+
+    if (!state.items.length) {
+      const box = el('div', 'empty');
+      box.append(el('strong', '', 'Belum ada item.'), document.createTextNode('Tambahkan link pertama dengan tombol di atas.'));
+      host.append(box);
+      return;
+    }
+
+    host.append(renderList('', groupByParent(), 0));
+    initSortable();
+  }
+
+  // ── Seret dan lepas ──
+  function initSortable() {
+    if (typeof Sortable === 'undefined') {
+      $('tree').classList.add('no-drag');
+      $('treeHint').textContent = 'Pustaka seret-dan-lepas gagal dimuat. Muat ulang halaman. Folder induk tetap bisa diubah lewat tombol edit.';
+      return;
+    }
+    $('tree').classList.remove('no-drag');
+    document.querySelectorAll('#tree ul.tree').forEach(function (ul) {
+      state.sortables.push(Sortable.create(ul, {
+        group: 'tree',
+        handle: '.grip',
+        animation: 150,
+        fallbackOnBody: true,
+        swapThreshold: 0.65,
+        ghostClass: 'drag-ghost',
+        onMove: onMove,
+        onEnd: onEnd
+      }));
+    });
+  }
+
+  function domFolderHeight(li) {
+    const subs = li.querySelectorAll(':scope > ul.tree > li[data-tipe="folder"]');
+    let mx = 0;
+    subs.forEach(function (s) { mx = Math.max(mx, domFolderHeight(s)); });
+    return 1 + mx;
+  }
+
+  // Menolak lebih awal bila folder akan melebihi batas tingkat.
+  function onMove(evt) {
+    const dragged = evt.dragged;
+    if (dragged.dataset.tipe !== 'folder') return true;
+    if (dragged.contains(evt.to)) return false;
+    const listLevel = Number(evt.to.dataset.level);
+    return listLevel + domFolderHeight(dragged) <= state.maxDepth;
+  }
+
+  function collectMoves() {
+    const moves = [];
+    document.querySelectorAll('#tree ul.tree').forEach(function (ul) {
+      Array.prototype.forEach.call(ul.children, function (li, idx) {
+        if (li.dataset && li.dataset.id) {
+          moves.push({ id: li.dataset.id, parent_id: ul.dataset.parent, urutan: idx + 1 });
+        }
+      });
+    });
+    return moves;
+  }
+
+  async function onEnd() {
+    const moves = collectMoves();
+    const changed = moves.some(function (m) {
+      const it = byId(m.id);
+      return !it || it.parent_id !== m.parent_id || it.urutan !== m.urutan;
+    });
+    if (!changed) return;
+    try {
+      const d = await call('admin.reorder', { moves: moves });
+      state.items = d.items;
+      renderTree();
+      toast('Urutan disimpan');
+    } catch (err) {
+      if (err.code === 'AUTH') return;
+      toast(err.message, true);
+      refresh().catch(function () {});
+    }
+  }
+
+  // ── Aksi item ──
+  async function toggleVisible(it, input) {
+    const want = input.checked;
+    input.disabled = true;
+    try {
+      const d = await call('admin.saveItem', { item: payload(it, { tampil: want }) });
+      state.items = d.items;
+      renderTree();
+      toast(want ? 'Ditampilkan di halaman publik' : 'Disembunyikan dari halaman publik');
+    } catch (err) {
+      input.checked = !want;
+      input.disabled = false;
+      if (err.code !== 'AUTH') toast(err.message, true);
+    }
+  }
+
+  async function removeItem(it, map) {
+    const n = it.tipe === 'folder' ? descendants(it.id, map).length : 0;
+    const what = it.tipe === 'folder'
+      ? 'folder "' + it.judul + '"' + (n ? ' beserta ' + n + ' item di dalamnya' : '')
+      : 'link "' + it.judul + '"';
+    if (!window.confirm('Hapus ' + what + '? Tindakan ini tidak bisa dibatalkan.')) return;
+    try {
+      const d = await call('admin.deleteItem', { id: it.id });
+      state.items = d.items;
+      renderTree();
+      toast('Dihapus');
+    } catch (err) {
+      if (err.code !== 'AUTH') toast(err.message, true);
+    }
+  }
+
+  // ── Dialog tambah / edit ──
+  const ICON_HINTS = {
+    emoji: { ph: '😀', help: 'Ketik atau tempel satu emoji.' },
+    gambar: { ph: 'https://…/logo.png', help: 'Alamat gambar (harus https). Gambar persegi paling rapi.' },
+    pustaka: { ph: 'instagram', help: null }
+  };
+
+  function updateIconFields() {
+    const jenis = $('fIconType').value;
+    const input = $('fIconValue');
+    const help = $('iconHelp');
+    input.hidden = jenis === 'none';
+    help.hidden = jenis === 'none';
+    if (jenis === 'none') {
+      input.value = '';
+    } else {
+      const h = ICON_HINTS[jenis];
+      input.placeholder = h.ph;
+      help.replaceChildren();
+      if (h.help) {
+        help.textContent = h.help;
+      } else {
+        help.append(document.createTextNode('Nama ikon huruf kecil, misalnya instagram, whatsapp, youtube, tiktok. Daftar nama: '));
+        const a = el('a', '', 'simpleicons.org');
+        a.href = 'https://simpleicons.org/';
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        help.append(a);
+      }
+    }
+    refreshPreview();
+  }
+
+  function refreshPreview() {
+    const probe = {
+      tipe: state.editingTipe,
+      ikon_jenis: $('fIconType').value,
+      ikon_isi: $('fIconValue').value.trim()
+    };
+    if (probe.ikon_jenis === 'pustaka') probe.ikon_isi = probe.ikon_isi.toLowerCase();
+    $('iconPreview').replaceChildren(App.icon(probe));
+  }
+
+  function fillParentOptions(item, tipe, preselect) {
+    const map = groupByParent();
+    const sel = $('fParent');
+    sel.replaceChildren(new Option('Halaman utama', ''));
+
+    const skip = new Set(item ? [item.id].concat(descendants(item.id, map)) : []);
+    // Tinggi folder yang akan diletakkan: folder punya tinggi sendiri, link tidak memakai tingkat.
+    const h = tipe !== 'folder' ? 0 : (item ? folderHeight(item.id, map) : 1);
+
+    (function walk(pid, level) {
+      (map.get(pid) || [])
+        .filter(function (i) { return i.tipe === 'folder' && !skip.has(i.id); })
+        .forEach(function (f) {
+          const opt = new Option('– '.repeat(level) + f.judul, f.id);
+          opt.disabled = level + 1 + h > state.maxDepth;
+          sel.append(opt);
+          walk(f.id, level + 1);
+        });
+    })('', 0);
+
+    sel.value = item ? item.parent_id : (preselect || '');
+    if (sel.value !== (item ? item.parent_id : (preselect || ''))) sel.value = '';
+  }
+
+  function openItemDialog(tipe, item) {
+    state.editingId = item ? item.id : null;
+    state.editingTipe = tipe;
+    $('dlgTitle').textContent = (item ? 'Edit ' : 'Tambah ') + (tipe === 'folder' ? 'folder' : 'link');
+    $('fTitle').value = item ? item.judul : '';
+    $('fUrl').value = item ? item.url : '';
+    $('fUrlWrap').hidden = tipe !== 'link';
+    $('fUrl').required = tipe === 'link';
+    $('fIconType').value = item ? item.ikon_jenis : 'none';
+    $('fIconValue').value = item ? item.ikon_isi : '';
+    $('fVisible').checked = item ? item.tampil : true;
+    $('dlgMsg').textContent = '';
+    fillParentOptions(item, tipe, '');
+    updateIconFields();
+    $('itemDialog').showModal();
+    $('fTitle').focus();
+  }
+
+  async function submitItem(e) {
+    e.preventDefault();
+    const btn = $('dlgSave');
+    const tipe = state.editingTipe;
+    const item = {
+      tipe: tipe,
+      judul: $('fTitle').value,
+      url: tipe === 'link' ? $('fUrl').value : '',
+      ikon_jenis: $('fIconType').value,
+      ikon_isi: $('fIconValue').value,
+      parent_id: $('fParent').value,
+      tampil: $('fVisible').checked
+    };
+    if (state.editingId) item.id = state.editingId;
+
+    setBusy(btn, true);
+    $('dlgMsg').textContent = '';
+    try {
+      const d = await call('admin.saveItem', { item: item });
+      state.items = d.items;
+      renderTree();
+      $('itemDialog').close();
+      toast('Tersimpan');
+    } catch (err) {
+      if (err.code === 'AUTH') $('itemDialog').close();
+      else $('dlgMsg').textContent = err.message;
+    } finally {
+      setBusy(btn, false);
+    }
+  }
+
+  // ── Pengaturan ──
+  function renderSettings() {
+    $('sTitle').value = state.settings.judul || '';
+    $('sSub').value = state.settings.subjudul || '';
+    $('sTheme').value = state.settings.tema || 'auto';
+  }
+
+  function setMsg(id, text, ok) {
+    const m = $(id);
+    m.textContent = text;
+    m.classList.toggle('ok', !!ok);
+  }
+
+  async function submitSettings(e) {
+    e.preventDefault();
+    const btn = e.submitter || e.target.querySelector('button[type="submit"]');
+    setBusy(btn, true);
+    setMsg('settingsMsg', '');
+    try {
+      const d = await call('admin.saveSettings', {
+        settings: { judul: $('sTitle').value, subjudul: $('sSub').value, tema: $('sTheme').value }
+      });
+      state.settings = d.settings;
+      renderSettings();
+      setMsg('settingsMsg', 'Pengaturan tersimpan.', true);
+    } catch (err) {
+      if (err.code !== 'AUTH') setMsg('settingsMsg', err.message);
+    } finally {
+      setBusy(btn, false);
+    }
+  }
+
+  async function submitPassword(e) {
+    e.preventDefault();
+    const btn = e.submitter || e.target.querySelector('button[type="submit"]');
+    setMsg('passwordMsg', '');
+    if ($('pNew').value !== $('pNew2').value) {
+      setMsg('passwordMsg', 'Ulangi password baru dengan teks yang sama.');
+      return;
+    }
+    setBusy(btn, true);
+    try {
+      const r = await call('admin.changePassword', {
+        oldPassword: $('pOld').value,
+        newPassword: $('pNew').value
+      });
+      setToken(r.token);
+      e.target.reset();
+      setMsg('passwordMsg', 'Password diganti. Sesi lain sudah keluar.', true);
+    } catch (err) {
+      if (err.code !== 'AUTH') setMsg('passwordMsg', err.message);
+    } finally {
+      setBusy(btn, false);
+    }
+  }
+
+  // ── Muat data ──
+  async function refresh() {
+    const d = await call('admin.list');
+    state.items = d.items;
+    state.settings = d.settings;
+    state.maxDepth = d.maxDepth || 3;
+    renderTree();
+    renderSettings();
+  }
+
+  function selectTab(name) {
+    ['items', 'settings'].forEach(function (t) {
+      const on = t === name;
+      $(t === 'items' ? 'tabItems' : 'tabSettings').setAttribute('aria-selected', String(on));
+      $(t === 'items' ? 'panelItems' : 'panelSettings').hidden = !on;
+    });
+  }
+
+  // ── Pemasangan ──
+  const themeBtn = $('themeBtn');
+  themeBtn.append(App.svg('moon', 'moon'), App.svg('sun', 'sun'));
+  themeBtn.addEventListener('click', App.theme.toggle);
+
+  document.querySelectorAll('.tab').forEach(function (b) {
+    b.addEventListener('click', function () { selectTab(b.dataset.tab); });
+  });
+
+  $('loginForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    const btn = $('loginBtn');
+    setBusy(btn, true);
+    $('loginMsg').textContent = '';
+    try {
+      const r = await App.post({ action: 'login', password: $('pw').value });
+      setToken(r.token);
+      $('pw').value = '';
+      await refresh();
+      showApp();
+    } catch (err) {
+      $('loginMsg').textContent = err.message;
+    } finally {
+      setBusy(btn, false);
+    }
+  });
+
+  $('logoutBtn').addEventListener('click', async function () {
+    try { await call('admin.logout'); } catch (e) { /* tetap keluar */ }
+    setToken('');
+    showLogin('');
+  });
+
+  $('addLink').addEventListener('click', function () { openItemDialog('link', null); });
+  $('addFolder').addEventListener('click', function () { openItemDialog('folder', null); });
+
+  $('itemForm').addEventListener('submit', submitItem);
+  $('dlgCancel').addEventListener('click', function () { $('itemDialog').close(); });
+  $('itemDialog').addEventListener('click', function (e) {
+    if (e.target === $('itemDialog')) $('itemDialog').close(); // klik di luar kotak dialog
+  });
+  $('fIconType').addEventListener('change', function () {
+    $('fIconValue').value = '';
+    updateIconFields();
+  });
+  let previewTimer;
+  $('fIconValue').addEventListener('input', function () {
+    clearTimeout(previewTimer);
+    previewTimer = setTimeout(refreshPreview, 250);
+  });
+
+  $('settingsForm').addEventListener('submit', submitSettings);
+  $('passwordForm').addEventListener('submit', submitPassword);
+
+  async function boot() {
+    if (!App.configured()) {
+      showLogin('config.js belum diisi dengan URL Web App.');
+      $('loginBtn').disabled = true;
+      return;
+    }
+    if (!getToken()) {
+      showLogin('');
+      return;
+    }
+    try {
+      await refresh();
+      showApp();
+    } catch (err) {
+      if (err.code !== 'AUTH') showLogin(err.message);
+    }
+  }
+
+  boot();
+})();
