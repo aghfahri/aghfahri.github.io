@@ -135,12 +135,35 @@
         A.toast('Daftar tersimpan');
         close();
       } catch (e) {
-        if (e.code !== 'AUTH') msg.textContent = e.message;
+        if (e.code === 'AUTH') return;
+        // Balasan server kadang rusak padahal data sudah masuk. Periksa dulu sebelum menyatakan gagal.
+        if ((e.code === 'BAD_RESPONSE' || e.code === 'NETWORK') && await savedAnyway(nameIn.value, ta.value)) {
+          A.toast('Daftar tersimpan');
+          close();
+        } else {
+          msg.textContent = e.message;
+        }
       } finally {
         A.setBusy(save, false);
       }
     });
     (isNew ? nameIn : ta).focus();
+  }
+
+  function key(n) { return n.normalize('NFKC').toLowerCase().replace(/\s+/g, ' ').trim(); }
+
+  async function savedAnyway(listId, text) {
+    try {
+      const want = {};
+      text.split('\n').forEach(function (n) { if (n.trim()) want[key(n)] = true; });
+      const got = (await A.call('admin.names.get', { list_id: listId })).names;
+      const have = {};
+      got.forEach(function (n) { if (n.nama) have[key(n.nama)] = true; });
+      const a = Object.keys(want), b = Object.keys(have);
+      return a.length === b.length && a.every(function (k) { return have[k]; });
+    } catch (e) {
+      return false;
+    }
   }
 
   $('newList').addEventListener('click', function () { openEditor(''); });
