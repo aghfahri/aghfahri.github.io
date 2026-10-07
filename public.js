@@ -11,6 +11,7 @@
   const themeBtn = $('themeBtn');
   themeBtn.append(App.svg('moon', 'moon'), App.svg('sun', 'sun'));
   themeBtn.addEventListener('click', App.theme.toggle);
+  $('adminLink').append(App.svg('user'));
 
   // Daftar terakhir disimpan di perangkat, jadi halaman langsung tampil
   // sementara Apps Script (yang lambat) menyiapkan data terbaru.
