@@ -3,10 +3,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Agung Fahri Husaeni</title>
-  <meta name="description" content="Halaman resmi Agung Fahri Husaeni: tautan, formulir, dan hasilnya.">
+  <title>Hasil form</title>
+  <meta name="robots" content="noindex">
   <script>
-    /* Pasang tema sebelum halaman tampil supaya tidak berkedip. */
     (function () {
       try {
         var p = localStorage.getItem('tema') || localStorage.getItem('tema_def') || 'auto';
@@ -24,34 +23,28 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&display=swap">
   <link rel="stylesheet" href="style.css?v=6">
+  <link rel="stylesheet" href="charts.css?v=6">
+  <link rel="stylesheet" href="dashboard.css?v=6">
 </head>
 <body>
   <div class="splash" id="splash" role="status" aria-label="Memuat">
     <div class="loader" aria-hidden="true"><span class="ln"></span><span class="sweep"></span></div>
   </div>
   <main class="wrap">
-    <header class="hero">
-      <div class="hero-actions">
-        <a class="icon-btn" id="adminLink" href="admin.html" aria-label="Masuk admin" title="Masuk admin"></a>
-        <button class="icon-btn theme-btn" id="themeBtn" type="button" aria-label="Ganti tema terang atau gelap"></button>
-      </div>
-      <div class="avatar"><img src="assets/logo-disc.png" alt="" width="108" height="108"></div>
-      <h1 id="title">AGUNG FAHRI HUSAENI</h1>
-      <p id="subtitle">Official Page</p>
+    <div class="topbar">
+      <a class="btn-back" href="./" id="home"></a>
+      <button class="icon-btn theme-btn" id="themeBtn" type="button" aria-label="Ganti tema terang atau gelap"></button>
+    </div>
+    <header class="dhead" id="dhead" hidden>
+      <h1 id="dtitle"></h1>
+      <div class="rich" id="ddesc"></div>
     </header>
-
-    <nav class="crumb" id="crumb" aria-label="Navigasi folder" hidden>
-      <a id="back" href="#/"></a>
-      <h2 id="crumbTitle"></h2>
-    </nav>
-
-    <ul class="list" id="list"></ul>
-    <div id="state"></div>
-    <noscript><p class="state"><strong>JavaScript dimatikan.</strong>Aktifkan JavaScript untuk melihat daftar tautan.</p></noscript>
+    <div id="stage" aria-live="polite"></div>
+    <noscript><p class="state"><strong>JavaScript dimatikan.</strong>Aktifkan JavaScript untuk melihat hasil.</p></noscript>
   </main>
-
   <script src="config.js?v=6"></script>
   <script src="common.js?v=6"></script>
-  <script src="public.js?v=6"></script>
+  <script src="charts.js?v=6"></script>
+  <script src="dashboard.js?v=6"></script>
 </body>
 </html>

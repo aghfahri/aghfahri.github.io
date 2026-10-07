@@ -22,8 +22,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&display=swap">
-  <link rel="stylesheet" href="style.css?v=5">
-  <link rel="stylesheet" href="admin.css?v=5">
+  <link rel="stylesheet" href="style.css?v=6">
+  <link rel="stylesheet" href="charts.css?v=6">
+  <link rel="stylesheet" href="admin.css?v=6">
 </head>
 <body>
   <div class="splash" id="splash" role="status" aria-label="Memuat">
@@ -59,6 +60,7 @@
       <div class="tabs" role="tablist">
         <button class="tab" role="tab" id="tabItems" data-tab="items" aria-selected="true" aria-controls="panelItems" type="button">Item</button>
         <button class="tab" role="tab" id="tabForms" data-tab="forms" aria-selected="false" aria-controls="panelForms" type="button">Form</button>
+        <button class="tab" role="tab" id="tabResults" data-tab="results" aria-selected="false" aria-controls="panelResults" type="button">Hasil</button>
         <button class="tab" role="tab" id="tabNames" data-tab="names" aria-selected="false" aria-controls="panelNames" type="button">Daftar nama</button>
         <button class="tab" role="tab" id="tabSettings" data-tab="settings" aria-selected="false" aria-controls="panelSettings" type="button">Pengaturan</button>
       </div>
@@ -68,6 +70,7 @@
           <button class="btn btn-primary" id="addLink" type="button">Tambah link</button>
           <button class="btn" id="addFolder" type="button">Tambah folder</button>
           <button class="btn" id="addForm" type="button">Tambah form</button>
+          <button class="btn" id="addDash" type="button">Tambah dashboard</button>
         </div>
         <div id="tree"></div>
         <p class="hint" id="treeHint">Tahan dan seret pegangan di sisi kiri untuk mengubah urutan atau memindahkan item ke dalam folder. Saklar mengatur tampil di halaman publik.</p>
@@ -80,6 +83,24 @@
           <p class="hint">Form baru tampil di halaman utama setelah dipasang lewat tombol "Pasang di beranda" (atau tab Item, Tambah form).</p>
         </div>
         <div id="formEditor" hidden></div>
+      </div>
+
+      <div id="panelResults" role="tabpanel" aria-labelledby="tabResults" hidden>
+        <div class="card res-bar">
+          <div class="field">
+            <label for="resForm">Form</label>
+            <select class="input" id="resForm"></select>
+          </div>
+          <div class="field">
+            <label for="resFilter">Tampilkan</label>
+            <select class="input" id="resFilter">
+              <option value="aktif">Jawaban aktif (terakhir tiap responden)</option>
+              <option value="semua">Semua pengiriman, termasuk yang digantikan</option>
+            </select>
+          </div>
+          <div class="res-actions" id="resActions"></div>
+        </div>
+        <div id="resBody"></div>
       </div>
 
       <div id="panelNames" role="tabpanel" aria-labelledby="tabNames" hidden>
@@ -148,7 +169,7 @@
       </div>
 
       <div class="field" id="fFormWrap" hidden>
-        <label for="fForm">Form yang dibuka</label>
+        <label for="fForm">Form</label>
         <select class="input" id="fForm"></select>
         <span class="help">Buat form dulu di tab Form. Judul tombol bebas, tidak harus sama dengan judul form.</span>
       </div>
@@ -194,10 +215,12 @@
   <div id="toast" role="status" aria-live="polite"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15/Sortable.min.js"></script>
-  <script src="config.js?v=5"></script>
-  <script src="common.js?v=5"></script>
-  <script src="admin.js?v=5"></script>
-  <script src="admin-forms.js?v=5"></script>
-  <script src="admin-names.js?v=5"></script>
+  <script src="config.js?v=6"></script>
+  <script src="common.js?v=6"></script>
+  <script src="charts.js?v=6"></script>
+  <script src="admin.js?v=6"></script>
+  <script src="admin-forms.js?v=6"></script>
+  <script src="admin-names.js?v=6"></script>
+  <script src="admin-results.js?v=6"></script>
 </body>
 </html>

@@ -169,7 +169,7 @@
     try {
       const d = await A.call('admin.forms.list');
       forms = d.forms;
-      A.state.forms = forms.map(function (f) { return { form_id: f.form_id, judul: f.judul, slug: f.slug, status: f.status }; });
+      A.state.forms = forms.map(function (f) { return { form_id: f.form_id, judul: f.judul, slug: f.slug, status: f.status, dashboard_aktif: f.dashboard_aktif }; });
       renderList();
     } catch (e) {
       if (e.code !== 'AUTH') host.replaceChildren(mk('div', 'empty', e.message));
@@ -218,7 +218,8 @@
       acts.append(
         btn('Edit', 'btn-primary', function () { openEditor(f.form_id); }, 'edit'),
         btn('Salin tautan', '', function () { copyText(formUrl(f.slug)); }, 'copy'),
-        btn('Pasang di beranda', '', function () { A.selectTab('items'); A.openItemDialog('form', null, f.form_id); }, 'plus')
+        btn('Pasang di beranda', '', function () { A.selectTab('items'); A.openItemDialog('form', null, f.form_id); }, 'plus'),
+        btn('Lihat hasil', '', function () { A.selectTab('results'); window.dispatchEvent(new CustomEvent('open-results', { detail: f.form_id })); }, 'chart')
       );
       const sheet = mk('a', 'btn');
       sheet.href = f.sheet_url; sheet.target = '_blank'; sheet.rel = 'noopener noreferrer';
@@ -366,6 +367,13 @@
     const pm = input(f, 'pesan_selesai', { area: true, rows: 2, max: 1000 });
     tp.append(field('Pesan setelah mengirim', pm, 'Kosongkan untuk memakai pesan bawaan.'));
     root.append(tp);
+
+    // Dashboard hasil
+    const dc = mk('section', 'card');
+    dc.append(mk('h3', '', 'Dashboard hasil'));
+    dc.append(checkbox(f, 'dashboard_aktif', 'Aktifkan dashboard publik untuk form ini'));
+    dc.append(mk('p', 'help', 'Bila aktif, siapa pun yang punya tautannya bisa melihat ringkasan jawaban (tanpa nama responden dan tanpa jawaban teks). Pilih soal mana yang tampil di bagian pertanyaan. Pasang tombolnya di beranda lewat tab Item, Tambah dashboard.'));
+    root.append(dc);
 
     // Identitas dan batas
     const idc = mk('section', 'card');
@@ -530,7 +538,8 @@
     const flags = mk('div', 'flags');
     flags.append(
       checkbox(q, 'wajib', 'Wajib dijawab'),
-      checkbox(q, 'tampil', 'Tampilkan pada form', function () { card.classList.toggle('is-off', !q.tampil); })
+      checkbox(q, 'tampil', 'Tampilkan pada form', function () { card.classList.toggle('is-off', !q.tampil); }),
+      checkbox(q, 'tampil_dashboard', 'Tampilkan hasilnya di dashboard publik')
     );
     card.append(flags);
     return card;

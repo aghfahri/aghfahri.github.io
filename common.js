@@ -32,6 +32,8 @@
     down: '<path d="M6 9l6 6 6-6"/>',
     copy: '<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/>',
     check: '<path d="M5 12l5 5L20 7"/>',
+    chart: '<path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/>',
+    download: '<path d="M12 4v11M7 11l5 5 5-5M5 20h14"/>',
     sheet: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M9 4v16"/>'
   };
 
@@ -87,7 +89,7 @@
       g.style.setProperty('--icon-url', 'url("' + (CFG.ICON_CDN || '') + isi + '.svg")');
       box.append(g);
     } else {
-      box.append(App.svg(item.tipe === 'folder' ? 'folder' : item.tipe === 'form' ? 'form' : 'link'));
+      box.append(App.svg(item.tipe === 'folder' ? 'folder' : item.tipe === 'form' ? 'form' : item.tipe === 'dashboard' ? 'chart' : 'link'));
     }
     return box;
   };

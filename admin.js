@@ -104,8 +104,9 @@
 
   function metaText(it, map) {
     if (it.tipe === 'folder') return (map.get(it.id) || []).length + ' isi';
-    if (it.tipe === 'form') {
+    if (it.tipe === 'form' || it.tipe === 'dashboard') {
       const f = state.forms.filter(function (x) { return x.form_id === it.form_id; })[0];
+      if (it.tipe === 'dashboard') return f ? 'Dashboard · ' + f.judul + (f.dashboard_aktif ? '' : ' (belum diaktifkan, tidak tampil)') : 'Dashboard';
       return f ? 'Form · ' + f.judul + (f.status === 'buka' ? '' : ' (ditutup)') : 'Form';
     }
     return it.url.replace(/^(https?:\/\/|mailto:|tel:)/i, '').replace(/\/$/, '');
@@ -284,6 +285,7 @@
     const n = it.tipe === 'folder' ? descendants(it.id, map).length : 0;
     const what = it.tipe === 'folder'
       ? 'folder "' + it.judul + '"' + (n ? ' beserta ' + n + ' item di dalamnya' : '')
+      : it.tipe === 'dashboard' ? 'tombol dashboard "' + it.judul + '" dari halaman utama (jawaban tetap ada)'
       : it.tipe === 'form' ? 'tombol form "' + it.judul + '" dari halaman utama (form dan jawabannya tetap ada)'
       : 'link "' + it.judul + '"';
     if (!window.confirm('Hapus ' + what + '? Tindakan ini tidak bisa dibatalkan.')) return;
@@ -369,9 +371,10 @@
     state.editingTipe = tipe;
     $('dlgTitle').textContent = (item ? 'Edit ' : 'Tambah ') + tipe;
     $('fTitle').value = item ? item.judul : '';
-    $('fFormWrap').hidden = tipe !== 'form';
-    $('fForm').required = tipe === 'form';
-    if (tipe === 'form') {
+    const needForm = tipe === 'form' || tipe === 'dashboard';
+    $('fFormWrap').hidden = !needForm;
+    $('fForm').required = needForm;
+    if (needForm) {
       const sel = $('fForm');
       sel.replaceChildren();
       state.forms.forEach(function (f) { sel.append(new Option(f.judul + (f.status === 'buka' ? '' : ' (ditutup)'), f.form_id)); });
@@ -379,7 +382,7 @@
       sel.value = item ? item.form_id : (preForm || (state.forms[0] || {}).form_id || '');
       if (!item && !$('fTitle').value && sel.value) {
         const f = state.forms.filter(function (x) { return x.form_id === sel.value; })[0];
-        if (f) $('fTitle').value = f.judul;
+        if (f) $('fTitle').value = (tipe === 'dashboard' ? 'Hasil ' : '') + f.judul;
       }
     }
     $('fUrl').value = item ? item.url : '';
@@ -403,7 +406,7 @@
       tipe: tipe,
       judul: $('fTitle').value,
       url: tipe === 'link' ? $('fUrl').value : '',
-      form_id: tipe === 'form' ? $('fForm').value : '',
+      form_id: (tipe === 'form' || tipe === 'dashboard') ? $('fForm').value : '',
       ikon_jenis: $('fIconType').value,
       ikon_isi: $('fIconValue').value,
       parent_id: $('fParent').value,
@@ -539,6 +542,7 @@
 
   $('addLink').addEventListener('click', function () { openItemDialog('link', null); });
   $('addFolder').addEventListener('click', function () { openItemDialog('folder', null); });
+  $('addDash').addEventListener('click', function () { openItemDialog('dashboard', null); });
   $('addForm').addEventListener('click', function () { openItemDialog('form', null); });
 
   $('itemForm').addEventListener('submit', submitItem);
@@ -588,7 +592,8 @@
     selectTab: selectTab,
     openItemDialog: openItemDialog,
     setItems: function (items) { state.items = items; renderTree(); },
-    setForms: function (forms) { state.forms = forms; renderTree(); }
+    setForms: function (forms) { state.forms = forms; renderTree(); },
+    el: el
   };
 
   boot();

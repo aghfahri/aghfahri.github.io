@@ -39,6 +39,9 @@
     let closed = false;
     if (item.tipe === 'folder') {
       a.href = '#/f/' + item.id;
+    } else if (item.tipe === 'dashboard') {
+      if (!item.form || !item.form.slug) return null;
+      a.href = 'dashboard.html?f=' + encodeURIComponent(item.form.slug);
     } else if (item.tipe === 'form') {
       if (!item.form || !item.form.slug) return null;
       a.href = 'form.html?f=' + encodeURIComponent(item.form.slug);
@@ -59,6 +62,8 @@
     a.append(App.icon(item), el('span', 'label', item.judul));
     if (item.tipe === 'folder') {
       a.append(el('span', 'count', count + ' item'), App.svg('chevron', 'trail'));
+    } else if (item.tipe === 'dashboard') {
+      a.append(App.svg('chevron', 'trail'));
     } else if (item.tipe === 'form') {
       if (closed) a.append(el('span', 'count', 'Ditutup'));
       a.append(App.svg('chevron', 'trail'));
