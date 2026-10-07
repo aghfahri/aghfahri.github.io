@@ -24,7 +24,14 @@
     moon: '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>',
     grip: '<circle cx="9" cy="6" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="18" r="1"/>',
     edit: '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>',
-    trash: '<path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/>'
+    trash: '<path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/>',
+    form: '<rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4h6v3H9zM9 12h6M9 16h6"/>',
+    plus: '<path d="M12 5v14M5 12h14"/>',
+    up: '<path d="M6 15l6-6 6 6"/>',
+    down: '<path d="M6 9l6 6 6-6"/>',
+    copy: '<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/>',
+    check: '<path d="M5 12l5 5L20 7"/>',
+    sheet: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M9 4v16"/>'
   };
 
   App.svg = function (name, cls) {
@@ -79,9 +86,84 @@
       g.style.setProperty('--icon-url', 'url("' + (CFG.ICON_CDN || '') + isi + '.svg")');
       box.append(g);
     } else {
-      box.append(App.svg(item.tipe === 'folder' ? 'folder' : 'link'));
+      box.append(App.svg(item.tipe === 'folder' ? 'folder' : item.tipe === 'form' ? 'form' : 'link'));
     }
     return box;
+  };
+
+  // ── Teks bacaan: **tebal**, *miring*, daftar bernomor (1. ...), daftar butir (- ...) ──
+  // Dibangun dengan DOM (bukan innerHTML), jadi isi dari admin tidak bisa menyisipkan HTML.
+  function inline(parent, text) {
+    String(text).split(/(\*\*[^*]+\*\*|\*[^*\s][^*]*\*)/).forEach(function (part) {
+      if (!part) return;
+      if (/^\*\*[^*]+\*\*$/.test(part)) parent.append(App.el('strong', '', part.slice(2, -2)));
+      else if (/^\*[^*\s][^*]*\*$/.test(part)) parent.append(App.el('em', '', part.slice(1, -1)));
+      else parent.append(document.createTextNode(part));
+    });
+  }
+
+  App.rich = function (text) {
+    const frag = document.createDocumentFragment();
+    let para = [];
+    let list = null;
+
+    function flushPara() {
+      if (!para.length) return;
+      const p = document.createElement('p');
+      para.forEach(function (ln, i) {
+        if (i) p.append(document.createElement('br'));
+        inline(p, ln);
+      });
+      frag.append(p);
+      para = [];
+    }
+
+    String(text == null ? '' : text).replace(/\r\n?/g, '\n').split('\n').forEach(function (raw) {
+      const line = raw.trim();
+      if (!line) { flushPara(); list = null; return; }
+      let m = /^(\d+)[.)]\s+(.*)$/.exec(line);
+      let tag = 'ol';
+      if (!m) { m = /^[-*\u2022]\s+(.*)$/.exec(line); tag = 'ul'; }
+      if (m) {
+        flushPara();
+        if (!list || list.tagName.toLowerCase() !== tag) {
+          list = document.createElement(tag);
+          if (tag === 'ol') list.start = Number(m[1]) || 1;
+          frag.append(list);
+        }
+        const li = document.createElement('li');
+        inline(li, tag === 'ol' ? m[2] : m[1]);
+        list.append(li);
+        return;
+      }
+      list = null;
+      para.push(line);
+    });
+    flushPara();
+    return frag;
+  };
+
+  App.randomId = function (n) {
+    const bytes = new Uint8Array(n);
+    (window.crypto || window.msCrypto).getRandomValues(bytes);
+    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    return Array.prototype.map.call(bytes, function (b) { return chars[b % chars.length]; }).join('');
+  };
+
+  // Pengenal perangkat untuk batas kirim per perangkat. Tersimpan di browser.
+  App.deviceId = function () {
+    let id = lsGet('dev_id');
+    if (!/^[A-Za-z0-9_-]{8,64}$/.test(id || '')) {
+      id = App.randomId(20);
+      lsSet('dev_id', id);
+    }
+    return id;
+  };
+
+  App.fmtDateTime = function (iso) {
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return '';
+    return d.toLocaleString('id-ID', { dateStyle: 'long', timeStyle: 'short' });
   };
 
   // ── Server ──

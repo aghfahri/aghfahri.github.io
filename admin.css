@@ -161,3 +161,48 @@ dialog h2 { margin: 0 0 1rem; font-size: 1.25rem; letter-spacing: -0.01em; }
 }
 #toast.show { opacity: 1; transform: translate(-50%, 0); }
 #toast.error { background: #b3261e; color: #fff; }
+
+/* ── Tab Form dan Daftar nama (tahap 2) ── */
+.tab { white-space: nowrap; }
+.tabs { overflow-x: auto; }
+.card h3 { margin: 0 0 0.9rem; font-size: 1.05rem; letter-spacing: -0.01em; }
+.card.fm { padding: 0.9rem 1rem; margin-bottom: 0.6rem; }
+.fm-top { display: flex; align-items: flex-start; gap: 0.75rem; }
+.fm-acts { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.75rem; }
+.fm-acts .btn { min-height: 2.25rem; padding: 0.3rem 0.75rem; font-size: 0.88rem; }
+.fm-acts .btn svg { width: 1rem; height: 1rem; }
+.row-meta.nowrap-off { white-space: normal; overflow-wrap: anywhere; }
+.badge.on { border-color: var(--accent); color: var(--ink); background: var(--tint); }
+
+.ed-head { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; flex-wrap: wrap; }
+.ed-head h2 { margin: 0; font-size: 1.25rem; }
+.ed-head .btn svg { width: 1rem; height: 1rem; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); gap: 0 0.9rem; }
+textarea.input { min-height: 3rem; resize: vertical; font: inherit; }
+.names-ta { font-family: inherit; line-height: 1.5; }
+
+.blk { border-left: 4px solid var(--accent); }
+.blk.is-off, .qcard.is-off { opacity: 0.6; }
+.blk-head, .q-top { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.75rem; }
+.blk-head h3 { margin: 0; }
+.blk-tools { display: flex; align-items: center; gap: 0.35rem; }
+.icon-btn.sm { width: 2.1rem; height: 2.1rem; border-radius: 0.5rem; }
+.icon-btn.sm.danger:hover { border-color: var(--danger); color: var(--danger); }
+.qs { display: grid; gap: 0.6rem; margin: 0.25rem 0 0.9rem; }
+.qcard { padding: 0.8rem; border: 1px solid var(--line); border-radius: 0.75rem; background: var(--bg); }
+.q-no { display: inline-grid; place-items: center; min-width: 1.75rem; height: 1.75rem; border-radius: 99px; background: var(--ink); color: var(--bg); font-weight: 700; font-size: 0.85rem; }
+.flags { display: flex; flex-wrap: wrap; gap: 0.25rem 1.25rem; margin-top: 0.25rem; }
+.flags .check { margin-bottom: 0.3rem; }
+.presets { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.3rem; }
+.btn.sm { min-height: 2rem; padding: 0.2rem 0.6rem; font-size: 0.8rem; }
+.rbar { display: flex; gap: 0.3rem; }
+.rb { min-width: 2rem; height: 2rem; border: 1px solid var(--line); border-radius: 0.5rem; background: var(--surface); color: var(--ink); font: inherit; font-size: 0.85rem; cursor: pointer; }
+.rb:hover { border-color: var(--ink); }
+.save-bar {
+  position: sticky; bottom: 0; display: flex; align-items: center; justify-content: flex-end; gap: 0.75rem;
+  margin: 1rem -0.25rem 0; padding: 0.75rem 0.25rem; background: var(--bg); border-top: 1px solid var(--line); z-index: 5;
+}
+.save-msg { flex: 1; color: var(--danger); font-size: 0.9rem; }
+.save-msg.ok { color: var(--ink); }
+.blocks { margin-bottom: 0.75rem; }
+.btn svg { width: 1rem; height: 1rem; flex: none; }

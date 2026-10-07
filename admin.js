@@ -10,6 +10,7 @@
     items: [],
     settings: {},
     maxDepth: 3,
+    forms: [],
     editingId: null,
     editingTipe: 'link',
     sortables: []
@@ -94,7 +95,7 @@
 
   function payload(it, over) {
     return Object.assign({
-      id: it.id, tipe: it.tipe, judul: it.judul, url: it.url,
+      id: it.id, tipe: it.tipe, judul: it.judul, url: it.url, form_id: it.form_id || '',
       ikon_jenis: it.ikon_jenis, ikon_isi: it.ikon_isi,
       parent_id: it.parent_id, tampil: it.tampil
     }, over || {});
@@ -102,6 +103,10 @@
 
   function metaText(it, map) {
     if (it.tipe === 'folder') return (map.get(it.id) || []).length + ' isi';
+    if (it.tipe === 'form') {
+      const f = state.forms.filter(function (x) { return x.form_id === it.form_id; })[0];
+      return f ? 'Form · ' + f.judul + (f.status === 'buka' ? '' : ' (ditutup)') : 'Form';
+    }
     return it.url.replace(/^(https?:\/\/|mailto:|tel:)/i, '').replace(/\/$/, '');
   }
 
@@ -278,6 +283,7 @@
     const n = it.tipe === 'folder' ? descendants(it.id, map).length : 0;
     const what = it.tipe === 'folder'
       ? 'folder "' + it.judul + '"' + (n ? ' beserta ' + n + ' item di dalamnya' : '')
+      : it.tipe === 'form' ? 'tombol form "' + it.judul + '" dari halaman utama (form dan jawabannya tetap ada)'
       : 'link "' + it.judul + '"';
     if (!window.confirm('Hapus ' + what + '? Tindakan ini tidak bisa dibatalkan.')) return;
     try {
@@ -357,11 +363,24 @@
     if (sel.value !== (item ? item.parent_id : (preselect || ''))) sel.value = '';
   }
 
-  function openItemDialog(tipe, item) {
+  function openItemDialog(tipe, item, preForm) {
     state.editingId = item ? item.id : null;
     state.editingTipe = tipe;
-    $('dlgTitle').textContent = (item ? 'Edit ' : 'Tambah ') + (tipe === 'folder' ? 'folder' : 'link');
+    $('dlgTitle').textContent = (item ? 'Edit ' : 'Tambah ') + tipe;
     $('fTitle').value = item ? item.judul : '';
+    $('fFormWrap').hidden = tipe !== 'form';
+    $('fForm').required = tipe === 'form';
+    if (tipe === 'form') {
+      const sel = $('fForm');
+      sel.replaceChildren();
+      state.forms.forEach(function (f) { sel.append(new Option(f.judul + (f.status === 'buka' ? '' : ' (ditutup)'), f.form_id)); });
+      if (!state.forms.length) sel.append(new Option('Belum ada form', ''));
+      sel.value = item ? item.form_id : (preForm || (state.forms[0] || {}).form_id || '');
+      if (!item && !$('fTitle').value && sel.value) {
+        const f = state.forms.filter(function (x) { return x.form_id === sel.value; })[0];
+        if (f) $('fTitle').value = f.judul;
+      }
+    }
     $('fUrl').value = item ? item.url : '';
     $('fUrlWrap').hidden = tipe !== 'link';
     $('fUrl').required = tipe === 'link';
@@ -383,6 +402,7 @@
       tipe: tipe,
       judul: $('fTitle').value,
       url: tipe === 'link' ? $('fUrl').value : '',
+      form_id: tipe === 'form' ? $('fForm').value : '',
       ikon_jenis: $('fIconType').value,
       ikon_isi: $('fIconValue').value,
       parent_id: $('fParent').value,
@@ -468,16 +488,19 @@
     state.items = d.items;
     state.settings = d.settings;
     state.maxDepth = d.maxDepth || 3;
+    state.forms = d.forms || [];
     renderTree();
     renderSettings();
   }
 
+  const tabHooks = {};
   function selectTab(name) {
-    ['items', 'settings'].forEach(function (t) {
-      const on = t === name;
-      $(t === 'items' ? 'tabItems' : 'tabSettings').setAttribute('aria-selected', String(on));
-      $(t === 'items' ? 'panelItems' : 'panelSettings').hidden = !on;
+    document.querySelectorAll('.tab').forEach(function (b) {
+      const on = b.dataset.tab === name;
+      b.setAttribute('aria-selected', String(on));
+      $(b.getAttribute('aria-controls')).hidden = !on;
     });
+    if (tabHooks[name]) tabHooks[name]();
   }
 
   // ── Pemasangan ──
@@ -515,6 +538,7 @@
 
   $('addLink').addEventListener('click', function () { openItemDialog('link', null); });
   $('addFolder').addEventListener('click', function () { openItemDialog('folder', null); });
+  $('addForm').addEventListener('click', function () { openItemDialog('form', null); });
 
   $('itemForm').addEventListener('submit', submitItem);
   $('dlgCancel').addEventListener('click', function () { $('itemDialog').close(); });
@@ -551,6 +575,16 @@
       if (err.code !== 'AUTH') showLogin(err.message);
     }
   }
+
+  // Dipakai admin-forms.js dan admin-names.js.
+  window.Admin = {
+    call: call, toast: toast, state: state, setBusy: setBusy,
+    onTab: function (name, fn) { tabHooks[name] = fn; },
+    selectTab: selectTab,
+    openItemDialog: openItemDialog,
+    setItems: function (items) { state.items = items; renderTree(); },
+    setForms: function (forms) { state.forms = forms; renderTree(); }
+  };
 
   boot();
 })();

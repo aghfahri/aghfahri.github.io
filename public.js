@@ -35,8 +35,15 @@
 
   function tile(item, count) {
     const a = el('a', 'tile tile-' + item.tipe);
+    let closed = false;
     if (item.tipe === 'folder') {
       a.href = '#/f/' + item.id;
+    } else if (item.tipe === 'form') {
+      if (!item.form || !item.form.slug) return null;
+      a.href = 'form.html?f=' + encodeURIComponent(item.form.slug);
+      const now = Date.now();
+      closed = item.form.status !== 'buka' ||
+        (item.form.buka && now < item.form.buka) || (item.form.tutup && now > item.form.tutup);
     } else {
       const u = App.safeUrl(item.url);
       if (!u) return null;
@@ -51,6 +58,9 @@
     a.append(App.icon(item), el('span', 'label', item.judul));
     if (item.tipe === 'folder') {
       a.append(el('span', 'count', count + ' item'), App.svg('chevron', 'trail'));
+    } else if (item.tipe === 'form') {
+      if (closed) a.append(el('span', 'count', 'Ditutup'));
+      a.append(App.svg('chevron', 'trail'));
     } else {
       a.append(App.svg('arrow', 'trail'));
     }

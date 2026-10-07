@@ -3,10 +3,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Agung Fahri Husaeni</title>
-  <meta name="description" content="Halaman resmi Agung Fahri Husaeni: tautan, formulir, dan hasilnya.">
+  <title>Form</title>
+  <meta name="robots" content="noindex">
   <script>
-    /* Pasang tema sebelum halaman tampil supaya tidak berkedip. */
     (function () {
       try {
         var p = localStorage.getItem('tema') || localStorage.getItem('tema_def') || 'auto';
@@ -19,28 +18,23 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&display=swap">
   <link rel="stylesheet" href="style.css?v=3">
+  <link rel="stylesheet" href="form.css?v=3">
 </head>
 <body>
   <main class="wrap">
-    <header class="hero">
+    <div class="topbar">
+      <a class="btn-back" href="./" id="home"></a>
       <button class="icon-btn theme-btn" id="themeBtn" type="button" aria-label="Ganti tema terang atau gelap"></button>
-      <h1 id="title">AGUNG FAHRI HUSAENI</h1>
-      <span class="rule" aria-hidden="true"></span>
-      <p id="subtitle">Official Page</p>
+    </div>
+    <header class="fhead" id="fhead" hidden>
+      <h1 id="ftitle"></h1>
+      <div class="rich" id="fdesc"></div>
     </header>
-
-    <nav class="crumb" id="crumb" aria-label="Navigasi folder" hidden>
-      <a id="back" href="#/"></a>
-      <h2 id="crumbTitle"></h2>
-    </nav>
-
-    <ul class="list" id="list"></ul>
-    <div id="state"></div>
-    <noscript><p class="state"><strong>JavaScript dimatikan.</strong>Aktifkan JavaScript untuk melihat daftar tautan.</p></noscript>
+    <div id="stage" aria-live="polite"></div>
+    <noscript><p class="state"><strong>JavaScript dimatikan.</strong>Aktifkan JavaScript untuk mengisi form.</p></noscript>
   </main>
-
   <script src="config.js?v=3"></script>
   <script src="common.js?v=3"></script>
-  <script src="public.js?v=3"></script>
+  <script src="form.js?v=3"></script>
 </body>
 </html>
