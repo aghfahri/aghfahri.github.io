@@ -17,14 +17,18 @@
   <link rel="icon" href="assets/favicon.ico" sizes="any">
   <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
   <link rel="icon" type="image/png" sizes="192x192" href="assets/favicon-192.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
   <meta name="theme-color" content="#121a33">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&display=swap">
-  <link rel="stylesheet" href="style.css?v=6">
-  <link rel="stylesheet" href="charts.css?v=6">
-  <link rel="stylesheet" href="admin.css?v=6">
+  <link rel="stylesheet" href="style.css?v=7">
+  <link rel="stylesheet" href="charts.css?v=7">
+  <link rel="stylesheet" href="admin.css?v=7">
 </head>
 <body>
   <div class="splash" id="splash" role="status" aria-label="Memuat">
@@ -124,6 +128,10 @@
             <input class="input" id="sSub" maxlength="140">
           </div>
           <div class="field">
+            <label for="sDesc">Deskripsi</label>
+            <textarea class="input" id="sDesc" rows="4" maxlength="600" placeholder="Opsional. Tampil di bawah subjudul."></textarea>
+          </div>
+          <div class="field">
             <label for="sTheme">Tema bawaan</label>
             <select class="input" id="sTheme">
               <option value="auto">Ikuti pengaturan perangkat</option>
@@ -215,12 +223,12 @@
   <div id="toast" role="status" aria-live="polite"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15/Sortable.min.js"></script>
-  <script src="config.js?v=6"></script>
-  <script src="common.js?v=6"></script>
-  <script src="charts.js?v=6"></script>
-  <script src="admin.js?v=6"></script>
-  <script src="admin-forms.js?v=6"></script>
-  <script src="admin-names.js?v=6"></script>
-  <script src="admin-results.js?v=6"></script>
+  <script src="config.js?v=7"></script>
+  <script src="common.js?v=7"></script>
+  <script src="charts.js?v=7"></script>
+  <script src="admin.js?v=7"></script>
+  <script src="admin-forms.js?v=7"></script>
+  <script src="admin-names.js?v=7"></script>
+  <script src="admin-results.js?v=7"></script>
 </body>
 </html>

@@ -12,6 +12,8 @@
   themeBtn.append(App.svg('moon', 'moon'), App.svg('sun', 'sun'));
   themeBtn.addEventListener('click', App.theme.toggle);
   $('adminLink').append(App.svg('user'));
+  $('installBtn').append(App.svg('install'));
+  App.installButton($('installBtn'));
 
   // Daftar terakhir disimpan di perangkat, jadi halaman langsung tampil
   // sementara Apps Script (yang lambat) menyiapkan data terbaru.
@@ -31,6 +33,10 @@
     $('title').textContent = s.judul;
     $('subtitle').textContent = s.subjudul;
     $('subtitle').hidden = !s.subjudul;
+    const d = $('desc');
+    d.replaceChildren();
+    if (s.deskripsi) d.append(App.rich(s.deskripsi));
+    d.hidden = !s.deskripsi;
     App.theme.setDefault(s.tema);
   }
 
@@ -156,7 +162,7 @@
     }
 
     try {
-      const fresh = await App.get({ action: 'public' });
+      const fresh = await App.get({ action: 'public' }, { silent: !!cached });
       writeCache(fresh);
       if (!cached || JSON.stringify(cached) !== JSON.stringify(fresh)) {
         data = fresh;

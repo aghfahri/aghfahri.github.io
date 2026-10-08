@@ -20,10 +20,15 @@
   <link rel="icon" type="image/png" sizes="192x192" href="assets/favicon-192.png">
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
   <meta name="theme-color" content="#121a33">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Agung Fahri">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&display=swap">
-  <link rel="stylesheet" href="style.css?v=6">
+  <link rel="stylesheet" href="style.css?v=7">
 </head>
 <body>
   <div class="splash" id="splash" role="status" aria-label="Memuat">
@@ -33,11 +38,13 @@
     <header class="hero">
       <div class="hero-actions">
         <a class="icon-btn" id="adminLink" href="admin.html" aria-label="Masuk admin" title="Masuk admin"></a>
+        <button class="icon-btn" id="installBtn" type="button" aria-label="Tambahkan ke layar utama" title="Tambahkan ke layar utama" hidden></button>
         <button class="icon-btn theme-btn" id="themeBtn" type="button" aria-label="Ganti tema terang atau gelap"></button>
       </div>
       <div class="avatar"><img src="assets/logo-disc.png" alt="" width="108" height="108"></div>
       <h1 id="title">AGUNG FAHRI HUSAENI</h1>
       <p id="subtitle">Official Page</p>
+      <div class="desc" id="desc" hidden></div>
     </header>
 
     <nav class="crumb" id="crumb" aria-label="Navigasi folder" hidden>
@@ -50,8 +57,8 @@
     <noscript><p class="state"><strong>JavaScript dimatikan.</strong>Aktifkan JavaScript untuk melihat daftar tautan.</p></noscript>
   </main>
 
-  <script src="config.js?v=6"></script>
-  <script src="common.js?v=6"></script>
-  <script src="public.js?v=6"></script>
+  <script src="config.js?v=7"></script>
+  <script src="common.js?v=7"></script>
+  <script src="public.js?v=7"></script>
 </body>
 </html>

@@ -69,7 +69,7 @@
     }
     if (btn) btn.classList.add('is-busy');
     try {
-      const d = await App.get({ action: 'dashboard', f: slug });
+      const d = await App.get({ action: 'dashboard', f: slug }, { silent: !first && !btn });
       const s = JSON.stringify(d);
       if (s !== last) { last = s; render(d); }
       if (first) App.splash.hide(1000);

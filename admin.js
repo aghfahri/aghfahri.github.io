@@ -434,6 +434,7 @@
   function renderSettings() {
     $('sTitle').value = state.settings.judul || '';
     $('sSub').value = state.settings.subjudul || '';
+    $('sDesc').value = state.settings.deskripsi || '';
     $('sTheme').value = state.settings.tema || 'auto';
   }
 
@@ -450,7 +451,7 @@
     setMsg('settingsMsg', '');
     try {
       const d = await call('admin.saveSettings', {
-        settings: { judul: $('sTitle').value, subjudul: $('sSub').value, tema: $('sTheme').value }
+        settings: { judul: $('sTitle').value, subjudul: $('sSub').value, deskripsi: $('sDesc').value, tema: $('sTheme').value }
       });
       state.settings = d.settings;
       renderSettings();

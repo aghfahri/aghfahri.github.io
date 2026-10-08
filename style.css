@@ -18,6 +18,7 @@
     radial-gradient(40rem 26rem at 38% 104%, rgba(255, 220, 120, 0.28), transparent 62%);
   --shadow: 0 1px 2px rgba(18, 26, 51, 0.05), 0 10px 24px -14px rgba(18, 26, 51, 0.28);
   --shadow-up: 0 2px 4px rgba(18, 26, 51, 0.06), 0 16px 30px -14px rgba(18, 26, 51, 0.38);
+  --logo-url: url(assets/logo-line_light.png);
   --r-sm: 0.625rem;
   --r-md: 0.875rem;
   --r-lg: 1.25rem;
@@ -35,6 +36,7 @@
   --accent: #ffc233;
   --on-accent: #1d1400;
   --danger: #ff8a80;
+  --logo-url: url(assets/logo-lines.png);
   --glow: rgba(255, 194, 51, 0.13);
   --mesh:
     radial-gradient(52rem 40rem at 6% 28%, rgba(52, 96, 232, 0.42), transparent 62%),
@@ -49,7 +51,7 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme]) {
     --bg: #080e1d; --surface: #131b33; --ink: #eef1f9; --muted: #98a4bf; --line: #263050; --tint: #1b2543;
-    --accent: #ffc233; --on-accent: #1d1400; --danger: #ff8a80;
+    --accent: #ffc233; --on-accent: #1d1400; --danger: #ff8a80; --logo-url: url(assets/logo-lines.png);
     --glow: rgba(255, 194, 51, 0.13);
     --mesh:
       radial-gradient(52rem 40rem at 6% 28%, rgba(52, 96, 232, 0.42), transparent 62%),
@@ -206,8 +208,8 @@ svg.i { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round
 .loader .sweep {
   position: absolute;
   inset: 0;
-  -webkit-mask: url(assets/logo-lines.png) center / contain no-repeat;
-  mask: url(assets/logo-lines.png) center / contain no-repeat;
+  -webkit-mask: var(--logo-url) center / contain no-repeat;
+  mask: var(--logo-url) center / contain no-repeat;
 }
 .loader .ln { background-color: var(--ink); opacity: 0.13; }
 .loader .sweep {
@@ -223,6 +225,41 @@ svg.i { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round
   font-weight: 500;
   letter-spacing: 0.01em;
 }
+
+/* Popup loading: lingkaran putar dengan logo kecil di tengah, muncul saat ada proses. */
+.busy-layer {
+  position: fixed; inset: 0; z-index: 90; display: grid; place-items: center;
+  background: rgba(8, 14, 29, 0.34);
+  -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
+  opacity: 0; visibility: hidden; transition: opacity 0.2s, visibility 0.2s;
+}
+.busy-layer.on { opacity: 1; visibility: visible; }
+.busy-pop {
+  position: relative; display: grid; place-items: center;
+  width: 4.6rem; height: 4.6rem; border-radius: 50%;
+  background: var(--surface); box-shadow: var(--shadow-up);
+  transform: scale(0.9); transition: transform 0.25s var(--ease);
+}
+.busy-layer.on .busy-pop { transform: none; }
+.busy-pop::before {
+  content: ''; position: absolute; inset: 0; border-radius: 50%;
+  border: 3px solid transparent; border-top-color: var(--accent); border-right-color: color-mix(in srgb, var(--accent) 35%, transparent);
+  animation: spin 0.9s linear infinite;
+}
+.busy-logo {
+  width: 2.7rem; height: 2.7rem; background-color: var(--ink);
+  -webkit-mask: var(--logo-url) center / contain no-repeat; mask: var(--logo-url) center / contain no-repeat;
+  animation: breathe 1.8s ease-in-out infinite;
+}
+
+/* Petunjuk pasang ke layar utama */
+.install-dlg { width: min(24rem, calc(100vw - 2rem)); padding: 0; border: 1px solid var(--line); border-radius: 1.4rem; background: var(--surface); color: var(--ink); box-shadow: 0 30px 80px -20px rgba(0,0,0,0.5); }
+.install-dlg::backdrop { background: rgba(8, 14, 29, 0.5); -webkit-backdrop-filter: blur(5px); backdrop-filter: blur(5px); }
+.install-dlg .in { padding: 1.4rem; }
+.install-dlg h2 { margin: 0 0 0.75rem; font-size: 1.2rem; letter-spacing: -0.02em; }
+.install-dlg ol { margin: 0 0 1.1rem; padding-left: 1.2rem; display: grid; gap: 0.45rem; color: var(--muted); }
+.install-dlg ol b { color: var(--ink); }
+.install-dlg .btn { width: 100%; }
 
 /* Penanda muat kecil di dalam panel. */
 .spin {
@@ -262,14 +299,17 @@ svg.i { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round
 .hero h1 {
   margin: 0;
   max-width: 100%;
-  font-size: clamp(1.9rem, 8.5vw, 2.55rem);
+  font-size: clamp(1.55rem, 6.8vw, 2.4rem);
   line-height: 1.05;
   font-weight: 800;
   letter-spacing: -0.03em;
   text-wrap: balance;
   overflow-wrap: anywhere;
 }
-.hero p { margin: 0.55rem 0 0; color: var(--muted); font-weight: 500; }
+.hero p { margin: 0.5rem 0 0; color: var(--muted); font-weight: 500; }
+.hero .desc { max-width: 24rem; margin-top: 0.7rem; font-size: 0.92rem; line-height: 1.5; }
+.hero .desc p { margin: 0 0 0.4rem; font-weight: 400; }
+.hero .desc p:last-child { margin: 0; }
 
 .crumb { display: flex; align-items: center; gap: 0.75rem; margin: 0 0 1.1rem; }
 .crumb a {
@@ -360,6 +400,20 @@ svg.i { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round
 .state { padding: 1.5rem 0; color: var(--muted); text-align: center; }
 .state strong { display: block; margin-bottom: 0.25rem; color: var(--ink); font-size: 1.0625rem; }
 .state .btn { margin-top: 0.875rem; }
+
+/* Layar ponsel (patokan iPhone 16, lebar 393): semua ukuran berbasis rem diperkecil. */
+@media (max-width: 480px) {
+  html { font-size: 14px; }
+  .wrap { padding: 1.6rem 1.1rem 3rem; }
+  .avatar { width: 5.2rem; height: 5.2rem; margin-bottom: 0.95rem; }
+  .avatar::before { inset: -0.38rem; }
+  .hero { margin-bottom: 1.5rem; }
+  .hero-actions { top: -0.35rem; right: -0.2rem; gap: 0.4rem; }
+  .hero-actions .icon-btn { width: 2.4rem; height: 2.4rem; }
+  .list { gap: 0.65rem; }
+  .tile { min-height: 3.7rem; gap: 0.75rem; }
+  .tile-folder { margin-bottom: 0.4rem; }
+}
 
 @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }

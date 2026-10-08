@@ -34,6 +34,7 @@
     check: '<path d="M5 12l5 5L20 7"/>',
     chart: '<path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/>',
     download: '<path d="M12 4v11M7 11l5 5 5-5M5 20h14"/>',
+    install: '<rect x="6" y="3" width="12" height="18" rx="3"/><path d="M12 8v6M9 11.5l3 3 3-3"/>',
     sheet: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M9 4v16"/>'
   };
 
@@ -197,6 +198,43 @@
     return e;
   }
 
+  // ── Popup loading: muncul bila proses lebih dari sekejap, hilang bila semua proses selesai ──
+  const busy = { n: 0, timer: 0, shownAt: 0, layer: null };
+  function busyLayer() {
+    if (!busy.layer) {
+      const l = document.createElement('div');
+      l.className = 'busy-layer';
+      l.setAttribute('role', 'status');
+      l.setAttribute('aria-label', 'Memproses');
+      l.innerHTML = '<div class="busy-pop"><span class="busy-logo"></span></div>';
+      document.body.append(l);
+      busy.layer = l;
+    }
+    return busy.layer;
+  }
+  App.loading = {
+    start: function () {
+      busy.n++;
+      if (busy.n === 1) {
+        clearTimeout(busy.timer);
+        busy.timer = setTimeout(function () {
+          if (document.getElementById('splash')) return; // layar pembuka masih menutup halaman
+          busyLayer().classList.add('on');
+          busy.shownAt = Date.now();
+        }, 220);
+      }
+    },
+    end: function () {
+      busy.n = Math.max(0, busy.n - 1);
+      if (busy.n === 0) {
+        clearTimeout(busy.timer);
+        if (!busy.layer) return;
+        const wait = Math.max(0, 400 - (Date.now() - busy.shownAt)); // tampil minimal sebentar agar tidak berkedip
+        setTimeout(function () { if (busy.n === 0) busy.layer.classList.remove('on'); }, busy.layer.classList.contains('on') ? wait : 0);
+      }
+    }
+  };
+
   async function readResponse(fetching) {
     let res;
     try {
@@ -222,20 +260,33 @@
 
   // Parameter waktu dan cache: 'no-store' mencegah browser memakai balasan lama,
   // jadi perubahan dari admin langsung terlihat tanpa muat ulang paksa.
-  App.get = async function (params) {
+  // opts.silent: tanpa popup loading (untuk pembaruan di latar belakang).
+  App.get = async function (params, opts) {
     needConfig();
     const query = new URLSearchParams(Object.assign({}, params, { t: Date.now() }));
-    return readResponse(fetch(CFG.API_URL + '?' + query, { cache: 'no-store' }));
+    const show = !(opts && opts.silent);
+    if (show) App.loading.start();
+    try {
+      return await readResponse(fetch(CFG.API_URL + '?' + query, { cache: 'no-store' }));
+    } finally {
+      if (show) App.loading.end();
+    }
   };
 
   // POST memakai text/plain agar browser tidak mengirim preflight CORS yang tidak didukung Apps Script.
-  App.post = async function (payload) {
+  App.post = async function (payload, opts) {
     needConfig();
-    return readResponse(fetch(CFG.API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(payload)
-    }));
+    const show = !(opts && opts.silent);
+    if (show) App.loading.start();
+    try {
+      return await readResponse(fetch(CFG.API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload)
+      }));
+    } finally {
+      if (show) App.loading.end();
+    }
   };
 
   // Hitung klik tanpa menunda pengunjung membuka link.
@@ -254,6 +305,65 @@
       }).catch(function () {});
     } catch (e) { /* abaikan */ }
   };
+
+  // ── Pasang ke layar utama ──
+  let installEvent = null;
+  window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); installEvent = e; });
+  window.addEventListener('appinstalled', function () { installEvent = null; });
+
+  function isStandalone() {
+    return (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
+  }
+  function isIOS() {
+    return /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  }
+
+  function installHelp() {
+    const d = document.createElement('dialog');
+    d.className = 'install-dlg';
+    const box = document.createElement('div');
+    box.className = 'in';
+    const h = document.createElement('h2');
+    h.textContent = 'Tambahkan ke layar utama';
+    const ol = document.createElement('ol');
+    const steps = isIOS()
+      ? ['Ketuk tombol <b>Bagikan</b> (kotak dengan panah ke atas) di Safari.', 'Gulir lalu pilih <b>Tambahkan ke Layar Utama</b>.', 'Ketuk <b>Tambah</b>.']
+      : ['Buka menu browser (titik tiga di pojok).', 'Pilih <b>Instal aplikasi</b> atau <b>Tambahkan ke layar utama</b>.', 'Konfirmasi dengan <b>Instal</b>.'];
+    steps.forEach(function (t) { const li = document.createElement('li'); li.innerHTML = t; ol.append(li); }); // teks tetap di atas, bukan input pengguna
+    const ok = document.createElement('button');
+    ok.type = 'button'; ok.className = 'btn btn-primary'; ok.textContent = 'Mengerti';
+    ok.addEventListener('click', function () { d.close(); });
+    box.append(h, ol, ok);
+    d.append(box);
+    d.addEventListener('close', function () { d.remove(); });
+    d.addEventListener('click', function (e) { if (e.target === d) d.close(); });
+    document.body.append(d);
+    d.showModal();
+  }
+
+  // Memasang perilaku tombol "pasang ke layar". Tombol disembunyikan bila sudah terpasang sebagai aplikasi.
+  App.installButton = function (btn) {
+    if (isStandalone()) { btn.hidden = true; return; }
+    btn.hidden = false;
+    btn.addEventListener('click', async function (e) {
+      e.preventDefault();
+      if (installEvent) {
+        const ev = installEvent;
+        installEvent = null;
+        ev.prompt();
+        try { await ev.userChoice; } catch (err) { /* abaikan */ }
+      } else {
+        installHelp();
+      }
+    });
+  };
+
+  // Service worker: perubahan file langsung tampil tanpa muat ulang paksa, dan situs bisa dipasang.
+  if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('sw.js').catch(function () { /* abaikan */ });
+    });
+  }
 
   // ── Tema ──
   function lsGet(k) {
