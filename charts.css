@@ -2,10 +2,15 @@
 :root {
   --c1: #2a78d6; --c2: #eb6834; --c3: #1baf7a; --c4: #eda100;
   --on-seg: #0b0b0b;
+  /* Satu warna bertingkat (kuat ke lemah) untuk opsi yang berurutan, saat opsi lebih dari empat */
+  --r1: #12335f; --r2: #1b4f95; --r3: #2a78d6; --r4: #5f98e0; --r5: #9cc0ee; --r6: #cfe0f7;
 }
-:root[data-theme="dark"] { --c1: #3987e5; --c2: #d95926; --c3: #199e70; --c4: #c98500; }
+.seg.rk0, .seg.rk1, .seg.rk2 { color: #fff; }
+:root[data-theme="dark"] { --c1: #3987e5; --c2: #d95926; --c3: #199e70; --c4: #c98500; --r1: #cfe0fb; --r2: #9cc3f5; --r3: #6ba6ee; --r4: #3987e5; --r5: #2b5a9d; --r6: #1f3a63; }
+:root[data-theme="dark"] .seg.rk0, :root[data-theme="dark"] .seg.rk1, :root[data-theme="dark"] .seg.rk2 { color: #0b0b0b; }
+:root[data-theme="dark"] .seg.rk3, :root[data-theme="dark"] .seg.rk4, :root[data-theme="dark"] .seg.rk5 { color: #fff; }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) { --c1: #3987e5; --c2: #d95926; --c3: #199e70; --c4: #c98500; }
+  :root:not([data-theme="light"]) { --c1: #3987e5; --c2: #d95926; --c3: #199e70; --c4: #c98500; --r1: #cfe0fb; --r2: #9cc3f5; --r3: #6ba6ee; --r4: #3987e5; --r5: #2b5a9d; --r6: #1f3a63; }
 }
 
 .qres { padding: 1rem 0; border-top: 1px solid var(--line); }
@@ -104,3 +109,5 @@
 
 @keyframes grow { from { width: 0; } }
 @keyframes growup { from { height: 0; } }
+.ov-sec + .ov-sec { margin-top: 1.4rem; padding-top: 1.1rem; border-top: 1px solid var(--line); }
+.ov-title { margin: 0 0 0.2rem; font-size: 0.85rem; font-weight: 650; line-height: 1.4; color: var(--muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }

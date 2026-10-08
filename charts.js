@@ -5,6 +5,7 @@
   const el = App.el;
   const NS = 'http://www.w3.org/2000/svg';
   const MAX_SLICES = 4; // warna kategori yang aman dibedakan
+  const MAX_STACK = 6;  // tumpuk 100% dengan banyak opsi memakai satu warna bertingkat
 
   function pct(a, b) { return b ? Math.round((a / b) * 1000) / 10 : 0; }
   function fmt(n) { return String(n).replace('.', ','); }
@@ -14,7 +15,7 @@
     return n;
   }
   function tip(node, text) { node.setAttribute('data-tip', text); return node; }
-  function color(i) { return 'var(--c' + ((i % MAX_SLICES) + 1) + ')'; }
+  function color(i, ramp) { return ramp ? 'var(--r' + (i + 1) + ')' : 'var(--c' + ((i % MAX_SLICES) + 1) + ')'; }
 
   // ── Tooltip (satu untuk seluruh halaman; sentuh = ketuk) ──
   let tipEl = null;
@@ -42,11 +43,11 @@
   window.addEventListener('scroll', hideTip, { passive: true });
 
   // ── Legenda ──
-  function legend(items, total) {
+  function legend(items, total, ramp) {
     const ul = el('ul', 'legend');
     items.forEach(function (o, i) {
       const li = el('li');
-      const dot = el('span', 'dot'); dot.style.background = color(i);
+      const dot = el('span', 'dot'); dot.style.background = color(i, ramp);
       li.append(dot, el('span', 'lg-label', o.label), el('b', '', fmt(pct(o.jumlah, total)) + '%'));
       ul.append(li);
     });
@@ -167,6 +168,7 @@
     const t = el('table', 'mini');
     const rows = [];
     if (q.opsi) q.opsi.forEach(function (o) { rows.push([o.label, o.jumlah, fmt(pct(o.jumlah, q.n)) + '%']); });
+    else if (q.kelompok) q.kelompok.forEach(function (o) { rows.push([o.nama, o.jumlah, fmt(pct(o.jumlah, q.n)) + '%']); });
     else if (q.skala) q.skala.dist.forEach(function (d) { rows.push(['Nilai ' + d.nilai, d.jumlah, fmt(pct(d.jumlah, q.n)) + '%']); });
     rows.forEach(function (r) {
       const tr = el('tr');
@@ -204,6 +206,15 @@
     } else if (q.skala) {
       body.append(scale(q));
       hasTable = true;
+    } else if (q.kelompok) {
+      const view = { teks: q.teks, n: q.n, opsi: q.kelompok.map(function (k) { return { label: k.nama, jumlah: k.jumlah }; }) };
+      body.append(bars(view));
+      body.append(el('p', 'tagline', q.otomatis ? 'kata yang sering muncul · jawaban bisa masuk lebih dari satu' : 'jawaban dikelompokkan · bisa masuk lebih dari satu'));
+      hasTable = true;
+      if (admin && q.kata && q.kata.length) {
+        body.append(el('p', 'tagline', 'Saran kata kunci: ' + q.kata.slice(0, 12).map(function (k) { return k.kata + ' (' + k.jumlah + ')'; }).join(', ')));
+      }
+      if (admin && q.jawaban) body.append(texts(q));
     } else if (q.jawaban) {
       body.append(texts(q));
     } else {
@@ -232,38 +243,46 @@
     const groups = {};
     blocks.forEach(function (b) {
       b.questions.forEach(function (q) {
-        if (!q.opsi || q.tipe === 'centang' || !q.n || q.opsi.length < 2 || q.opsi.length > MAX_SLICES) return;
+        if (!q.opsi || q.tipe === 'centang' || !q.n || q.opsi.length < 2 || q.opsi.length > MAX_STACK) return;
         const sig = q.opsi.map(function (o) { return o.label; }).join('\u0001');
         (groups[sig] = groups[sig] || []).push({ label: labelBlok + ' ' + b.no, q: q });
       });
     });
-    let best = null;
-    Object.keys(groups).forEach(function (k) { if (groups[k].length >= 2 && (!best || groups[k].length > best.length)) best = groups[k]; });
-    if (!best) return null;
+    const list = Object.keys(groups).map(function (k) { return groups[k]; })
+      .filter(function (g) { return g.length >= 2; })
+      .sort(function (x, y) { return y.length - x.length; }).slice(0, 4);
+    if (!list.length) return null;
 
     const card = el('section', 'card dsec ov');
-    const opsi = best[0].q.opsi;
-    card.append(legend(opsi.map(function (o) { return { label: o.label, jumlah: 0 }; }), 1));
-    card.querySelectorAll('.legend b').forEach(function (b) { b.remove(); });
-    const list = el('div', 'stack-list');
-    best.forEach(function (r) {
-      const total = r.q.opsi.reduce(function (s, o) { return s + o.jumlah; }, 0);
-      const row = el('div', 'stack-row');
-      row.append(el('span', 'stack-lab', r.label));
-      const track = el('div', 'stack-track');
-      r.q.opsi.forEach(function (o, i) {
-        if (!o.jumlah) return;
-        const p = pct(o.jumlah, total);
-        const seg = el('span', 'seg', p >= 14 ? Math.round(p) + '%' : '');
-        seg.style.flexGrow = String(o.jumlah);
-        seg.style.background = color(i);
-        tip(seg, r.label + ' · ' + o.label + ' · ' + o.jumlah + ' (' + fmt(p) + '%)');
-        track.append(seg);
+    list.forEach(function (best) {
+      const sec = el('div', 'ov-sec');
+      const opsi = best[0].q.opsi;
+      const ramp = opsi.length > MAX_SLICES;
+      if (list.length > 1) sec.append(el('h3', 'ov-title', best[0].q.teks));
+      const lg = legend(opsi.map(function (o) { return { label: o.label, jumlah: 0 }; }), 1, ramp);
+      lg.querySelectorAll('b').forEach(function (n) { n.remove(); });
+      sec.append(lg);
+      const rows = el('div', 'stack-list');
+      best.forEach(function (r) {
+        const total = r.q.opsi.reduce(function (s, o) { return s + o.jumlah; }, 0);
+        const row = el('div', 'stack-row');
+        row.append(el('span', 'stack-lab', r.label));
+        const track = el('div', 'stack-track');
+        r.q.opsi.forEach(function (o, i) {
+          if (!o.jumlah) return;
+          const p = pct(o.jumlah, total);
+          const seg = el('span', 'seg' + (ramp ? ' rk' + i : ''), p >= 14 ? Math.round(p) + '%' : '');
+          seg.style.flexGrow = String(o.jumlah);
+          seg.style.background = color(i, ramp);
+          tip(seg, r.label + ' · ' + o.label + ' · ' + o.jumlah + ' (' + fmt(p) + '%)');
+          track.append(seg);
+        });
+        row.append(track);
+        rows.append(row);
       });
-      row.append(track);
-      list.append(row);
+      sec.append(rows);
+      card.append(sec);
     });
-    card.append(list);
     return card;
   }
 

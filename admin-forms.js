@@ -284,7 +284,7 @@
     return {
       q_id: '', tipe: 'pilihan', teks: '', wajib: false, pilihan: ['Ya', 'Tidak'], acak: false,
       min_pilih: 0, maks_pilih: 0, skala_min: 1, skala_maks: 5, skala_label_min: '', skala_label_maks: '',
-      tampil: true, tampil_dashboard: true
+      tampil: true, tampil_dashboard: true, kategori: ''
     };
   }
   function newBlock() {
@@ -441,6 +441,60 @@
     window.scrollTo(0, keepY);
   }
 
+  // ── Penyalinan (memudahkan menyusun banyak blok yang mirip) ──
+  function clone(o) { return JSON.parse(JSON.stringify(o)); }
+  function stripIds(b) { b.block_id = ''; b.questions.forEach(function (q) { q.q_id = ''; }); return b; }
+
+  // Menaikkan angka terakhir pada judul ("Pasal 4" -> "Pasal 5") dan angka yang sama pada teks pertanyaan.
+  function bumpNumber(block, step) {
+    const m = /^(.*?)(\d+)(\D*)$/.exec(block.judul || '');
+    if (!m) return block;
+    const old = m[2];
+    const now = String(Number(old) + step);
+    block.judul = m[1] + now + m[3];
+    const word = /(\S+)\s*$/.exec(m[1]);
+    if (word) {
+      const esc = word[1].replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const re = new RegExp('(' + esc + '\\s*)' + old + '(?!\\d)', 'gi');
+      block.questions.forEach(function (q) { q.teks = String(q.teks || '').replace(re, '$1' + now); });
+    }
+    return block;
+  }
+
+  function duplicateBlock(bi, times) {
+    const src = model.blocks[bi];
+    const copies = [];
+    for (let k = 1; k <= times; k++) copies.push(bumpNumber(stripIds(clone(src)), k));
+    Array.prototype.splice.apply(model.blocks, [bi + 1, 0].concat(copies));
+    markDirty(); renderEditor();
+    A.toast(times === 1 ? 'Blok diduplikat' : times + ' blok diduplikat');
+  }
+
+  function duplicateQuestion(b, qi) {
+    const c = clone(b.questions[qi]); c.q_id = '';
+    b.questions.splice(qi + 1, 0, c);
+    markDirty(); renderEditor();
+  }
+
+  function copyQuestionToOthers(b, qi) {
+    const word = model.form.label_blok || 'Soal';
+    const others = model.blocks.filter(function (x) { return x !== b; });
+    if (!others.length) { A.toast('Belum ada ' + word.toLowerCase() + ' lain', true); return; }
+    if (!window.confirm('Salin pertanyaan ini ke ' + others.length + ' ' + word.toLowerCase() + ' lain (ditambahkan di akhir)?')) return;
+    others.forEach(function (x) { const c = clone(b.questions[qi]); c.q_id = ''; x.questions.push(c); });
+    markDirty(); renderEditor();
+    A.toast('Pertanyaan disalin ke ' + others.length + ' ' + word.toLowerCase());
+  }
+
+  function applyChoicesToSameType(q) {
+    let n = 0;
+    model.blocks.forEach(function (b) { b.questions.forEach(function (x) { if (x !== q && x.tipe === q.tipe) { x.pilihan = q.pilihan.slice(); n++; } }); });
+    if (!n) { A.toast('Tidak ada pertanyaan sejenis lain', true); return; }
+    if (!window.confirm('Samakan pilihan jawaban di ' + n + ' pertanyaan sejenis lainnya dengan yang ini?')) { return; }
+    markDirty(); renderEditor();
+    A.toast('Pilihan disamakan di ' + n + ' pertanyaan');
+  }
+
   function renderBlock(b, bi) {
     const label = model.form.label_blok || 'Soal';
     const card = mk('section', 'card blk' + (b.tampil ? '' : ' is-off'));
@@ -455,6 +509,7 @@
     tools.append(sw,
       ibtn('up', 'Naikkan blok', function () { move(model.blocks, bi, -1); }),
       ibtn('down', 'Turunkan blok', function () { move(model.blocks, bi, 1); }),
+      ibtn('copy', 'Duplikat ' + label.toLowerCase(), function () { duplicateBlock(bi, 1); }),
       ibtn('trash', 'Hapus blok', function () {
         if (!window.confirm('Hapus ' + label + ' ' + (bi + 1) + ' beserta pertanyaannya? Jawaban lama di Sheets tetap tersimpan.')) return;
         model.blocks.splice(bi, 1); markDirty(); renderEditor();
@@ -472,7 +527,17 @@
     const qh = mk('div', 'qs');
     b.questions.forEach(function (q, qi) { qh.append(renderQuestion(b, q, qi)); });
     card.append(qh);
-    card.append(btn('Tambah pertanyaan', '', function () { b.questions.push(newQuestion()); markDirty(); renderEditor(); }, 'plus'));
+    const foot = mk('div', 'blk-foot');
+    foot.append(
+      btn('Tambah pertanyaan', '', function () { b.questions.push(newQuestion()); markDirty(); renderEditor(); }, 'plus'),
+      btn('Duplikat beberapa kali', 'sm', function () {
+        const v = window.prompt('Berapa salinan ' + label.toLowerCase() + ' ini yang dibuat? (1 sampai 20)\nAngka pada judul dinaikkan otomatis (Pasal 4 → Pasal 5, 6, …).', '4');
+        if (v === null) return;
+        const n = Math.floor(Number(v));
+        if (!(n >= 1 && n <= 20)) { A.toast('Isi angka 1 sampai 20', true); return; }
+        duplicateBlock(bi, n);
+      }, 'copy'));
+    card.append(foot);
     return card;
   }
 
@@ -491,6 +556,7 @@
     tools.append(
       ibtn('up', 'Naikkan pertanyaan', function () { move(b.questions, qi, -1); }),
       ibtn('down', 'Turunkan pertanyaan', function () { move(b.questions, qi, 1); }),
+      ibtn('copy', 'Duplikat pertanyaan', function () { duplicateQuestion(b, qi); }),
       ibtn('trash', 'Hapus pertanyaan', function () {
         if (b.questions.length === 1 && !window.confirm('Ini pertanyaan terakhir di blok. Hapus?')) return;
         b.questions.splice(qi, 1); markDirty(); renderEditor();
@@ -514,6 +580,7 @@
       [['Ya / Tidak', ['Ya', 'Tidak']], ['Setuju / Tidak setuju', ['Setuju', 'Tidak setuju']], ['Benar / Salah', ['Benar', 'Salah']]].forEach(function (p) {
         presets.append(btn(p[0], 'sm', function () { q.pilihan = p[1].slice(); ta.value = q.pilihan.join('\n'); markDirty(); }));
       });
+      presets.append(btn('Samakan di semua pertanyaan sejenis', 'sm', function () { applyChoicesToSameType(q); }));
       w.append(presets);
       card.append(w);
       card.append(checkbox(q, 'acak', 'Acak urutan pilihan (berbeda untuk tiap perangkat)'));
@@ -536,6 +603,11 @@
       card.append(g);
     }
 
+    if (q.tipe === 'singkat' || q.tipe === 'paragraf') {
+      const kt = input(q, 'kategori', { area: true, rows: 4, max: 2000, ph: 'Redaksi: redaksi, kalimat, bahasa\nSanksi: sanksi, denda' });
+      card.append(field('Pengelompokan jawaban (opsional)', kt, 'Satu kelompok per baris: Nama: kata1, kata2. Jawaban yang memuat salah satu kata masuk ke kelompok itu. Dashboard hanya menampilkan persentase tiap kelompok, bukan isi jawaban. Dikosongkan = dikelompokkan otomatis menurut kata yang sering muncul. Di tab Hasil ada saran kata kunci.'));
+    }
+
     const flags = mk('div', 'flags');
     flags.append(
       checkbox(q, 'wajib', 'Wajib dijawab'),
@@ -543,6 +615,7 @@
       checkbox(q, 'tampil_dashboard', 'Tampilkan hasilnya di dashboard publik')
     );
     card.append(flags);
+    card.append(btn('Salin ke semua ' + (model.form.label_blok || 'Soal') + ' lain', 'sm', function () { copyQuestionToOthers(b, qi); }, 'copy'));
     return card;
   }
 

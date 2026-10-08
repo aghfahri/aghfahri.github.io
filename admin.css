@@ -319,3 +319,5 @@ html, body { overflow-x: hidden; }
 .tree .tree { margin-left: 0.6rem; padding-left: 0.5rem; }
 .row, .row-head { max-width: 100%; min-width: 0; }
 .row-head .icon-btn { flex: 0 0 auto; }
+.blk-foot { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.9rem; }
+.qcard > .btn.sm { margin-top: 0.6rem; }

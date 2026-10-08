@@ -48,3 +48,4 @@
 .card h2 { font-size: 1.02rem; }
 .refresh-solo { margin: -0.3rem 0 0.8rem auto; display: grid; }
 .kpi { justify-items: start; } .kpi.hero { justify-items: start; }
+.kpis { display: flex; gap: 0.6rem; } .kpis .kpi { flex: 1; min-width: 0; } .kpis .kpi.hero { flex: 1.4; } .kpis .kpi:only-child { flex: 1; }
