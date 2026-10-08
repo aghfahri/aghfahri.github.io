@@ -30,9 +30,9 @@
     } catch (e) { /* abaikan */ }
   }
 
-  async function call(action, payload) {
+  async function call(action, payload, opts) {
     try {
-      return await App.post(Object.assign({ action: action, token: getToken() }, payload || {}));
+      return await App.post(Object.assign({ action: action, token: getToken() }, payload || {}), opts);
     } catch (err) {
       if (err.code === 'AUTH') {
         setToken('');
@@ -488,14 +488,23 @@
   }
 
   // ── Muat data ──
-  async function refresh() {
-    const d = await call('admin.list');
+  function applyList(d) {
     state.items = d.items;
     state.settings = d.settings;
     state.maxDepth = d.maxDepth || 3;
     state.forms = d.forms || [];
     renderTree();
     renderSettings();
+  }
+
+  // Data admin disimpan sementara di tab ini, jadi panel langsung tampil lalu diperbarui diam-diam.
+  const ADM_CACHE = 'admin_cache';
+  function saveAdminCache(d) { try { sessionStorage.setItem(ADM_CACHE, JSON.stringify(d)); } catch (e) { /* abaikan */ } }
+  function loadAdminCache() { try { return JSON.parse(sessionStorage.getItem(ADM_CACHE)); } catch (e) { return null; } }
+  async function refresh(silent) {
+    const d = await call('admin.list', {}, { silent: !!silent });
+    saveAdminCache(d);
+    applyList(d);
   }
 
   const tabHooks = {};
@@ -509,6 +518,10 @@
   }
 
   // ── Pemasangan ──
+  document.querySelectorAll('.tic').forEach(function (n) { n.replaceWith(App.svg(n.dataset.i)); });
+  $('viewBtn').append(App.svg('external'));
+  $('logoutBtn').append(App.svg('logout'));
+  document.querySelectorAll('input[type="password"]').forEach(App.passwordEye);
   const themeBtn = $('themeBtn');
   themeBtn.append(App.svg('moon', 'moon'), App.svg('sun', 'sun'));
   themeBtn.addEventListener('click', App.theme.toggle);
@@ -526,7 +539,7 @@
       const r = await App.post({ action: 'login', password: $('pw').value });
       setToken(r.token);
       $('pw').value = '';
-      await refresh();
+      if (r.boot) { saveAdminCache(r.boot); applyList(r.boot); } else { await refresh(); }
       showApp();
     } catch (err) {
       $('loginMsg').textContent = err.message;
@@ -578,11 +591,19 @@
       showLogin('');
       return;
     }
+    const cached = loadAdminCache();
     try {
-      await refresh();
-      showApp();
+      if (cached && cached.items) {
+        applyList(cached);
+        showApp();
+        App.splash.hide(300);
+        await refresh(true);
+      } else {
+        await refresh();
+        showApp();
+      }
     } catch (err) {
-      if (err.code !== 'AUTH') showLogin(err.message);
+      if (err.code !== 'AUTH' && !cached) showLogin(err.message);
     }
   }
 

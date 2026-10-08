@@ -35,6 +35,13 @@
     chart: '<path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/>',
     download: '<path d="M12 4v11M7 11l5 5 5-5M5 20h14"/>',
     install: '<rect x="6" y="3" width="12" height="18" rx="3"/><path d="M12 8v6M9 11.5l3 3 3-3"/>',
+    eye: '<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+    eyeoff: '<path d="M3 3l18 18M10.6 5.1A10 10 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-3.2 4M6.5 6.6C3.7 8.4 2 12 2 12s3.6 7 10 7a9.700 9.700 0 0 0 4.200-.9M9.900 9.900a3 3 0 0 0 4.200 4.200"/>',
+    logout: '<path d="M9 4H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4M16 8l4 4-4 4M20 12H9"/>',
+    external: '<path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>',
+    settings: '<circle cx="12" cy="12" r="3"/><path d="M19.400 15a1.700 1.700 0 0 0 .3 1.800l.1.1a2 2 0 1 1-2.800 2.800l-.1-.1a1.700 1.700 0 0 0-1.800-.3 1.700 1.700 0 0 0-1 1.500V21a2 2 0 1 1-4 0v-.1a1.700 1.700 0 0 0-1.100-1.500 1.700 1.700 0 0 0-1.800.3l-.1.1a2 2 0 1 1-2.800-2.800l.1-.1a1.700 1.700 0 0 0 .3-1.800 1.700 1.700 0 0 0-1.500-1H3a2 2 0 1 1 0-4h.1a1.700 1.700 0 0 0 1.500-1.100 1.700 1.700 0 0 0-.3-1.800l-.1-.1a2 2 0 1 1 2.800-2.800l.1.100a1.700 1.700 0 0 0 1.800.3H9a1.700 1.700 0 0 0 1-1.500V3a2 2 0 1 1 4 0v.1a1.700 1.700 0 0 0 1 1.500 1.700 1.700 0 0 0 1.800-.3l.1-.1a2 2 0 1 1 2.800 2.800l-.1.1a1.700 1.700 0 0 0-.3 1.800V9a1.700 1.700 0 0 0 1.500 1H21a2 2 0 1 1 0 4h-.1a1.700 1.700 0 0 0-1.500 1z"/>',
+    users: '<circle cx="9" cy="8" r="3.500"/><path d="M2 20a7 7 0 0 1 14 0M16 4.500a3.500 3.500 0 0 1 0 7M18 14.500a7 7 0 0 1 4 5.500"/>',
+    list: '<path d="M8 6h13M8 12h13M8 18h13M3.500 6h.01M3.500 12h.01M3.500 18h.01"/>',
     sheet: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M9 4v16"/>'
   };
 
@@ -242,14 +249,32 @@
     } catch (e) {
       throw apiError('Tidak bisa terhubung ke server. Periksa koneksi internet.', 'NETWORK');
     }
+    let text = '';
+    try { text = await res.text(); } catch (e) { /* kosong */ }
     let json;
     try {
-      json = await res.json();
+      json = JSON.parse(text);
     } catch (e) {
-      throw apiError('Respons server tidak valid. Pastikan URL Web App benar dan aksesnya "Anyone".', 'BAD_RESPONSE');
+      // Apps Script kadang membalas halaman HTML (kuota, server sibuk, atau akun Google ganda).
+      try { console.warn('Balasan bukan JSON (HTTP ' + res.status + '):', text.slice(0, 300)); } catch (e2) { /* abaikan */ }
+      throw apiError('Server sedang tidak merespons dengan benar (HTTP ' + res.status + '). Coba lagi sebentar.', 'BAD_RESPONSE');
     }
     if (!json.ok) throw apiError(json.error || 'Terjadi kesalahan.', json.code || 'ERROR');
     return json.data;
+  }
+
+  // Aksi yang aman diulang otomatis kalau balasan server rusak atau jaringan putus sesaat.
+  const SAFE_POST = /^(login|admin\.(list|results|forms\.list|form\.get|names\.lists|names\.get))$/;
+  function transient(err) { return err && (err.code === 'BAD_RESPONSE' || err.code === 'NETWORK'); }
+  function wait(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+  async function withRetry(fn, safe) {
+    try {
+      return await fn();
+    } catch (err) {
+      if (!safe || !transient(err)) throw err;
+      await wait(700);
+      return fn();
+    }
   }
 
   function needConfig() {
@@ -258,16 +283,17 @@
     }
   }
 
-  // Parameter waktu dan cache: 'no-store' mencegah browser memakai balasan lama,
-  // jadi perubahan dari admin langsung terlihat tanpa muat ulang paksa.
+  // 'no-store' mencegah browser memakai balasan lama.
   // opts.silent: tanpa popup loading (untuk pembaruan di latar belakang).
   App.get = async function (params, opts) {
     needConfig();
-    const query = new URLSearchParams(Object.assign({}, params, { t: Date.now() }));
     const show = !(opts && opts.silent);
     if (show) App.loading.start();
     try {
-      return await readResponse(fetch(CFG.API_URL + '?' + query, { cache: 'no-store' }));
+      return await withRetry(function () {
+        const query = new URLSearchParams(Object.assign({}, params, { t: Date.now() }));
+        return readResponse(fetch(CFG.API_URL + '?' + query, { cache: 'no-store' }));
+      }, true);
     } finally {
       if (show) App.loading.end();
     }
@@ -279,14 +305,39 @@
     const show = !(opts && opts.silent);
     if (show) App.loading.start();
     try {
-      return await readResponse(fetch(CFG.API_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify(payload)
-      }));
+      return await withRetry(function () {
+        return readResponse(fetch(CFG.API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(payload)
+        }));
+      }, SAFE_POST.test(String(payload && payload.action)));
     } finally {
       if (show) App.loading.end();
     }
+  };
+
+  // Tombol mata untuk melihat password.
+  App.passwordEye = function (input) {
+    if (input.dataset.eye) return;
+    input.dataset.eye = '1';
+    const box = document.createElement('div');
+    box.className = 'pw-box';
+    input.parentNode.insertBefore(box, input);
+    box.append(input);
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'pw-eye';
+    b.setAttribute('aria-label', 'Tampilkan password');
+    b.append(App.svg('eye'));
+    b.addEventListener('click', function () {
+      const show = input.type === 'password';
+      input.type = show ? 'text' : 'password';
+      b.setAttribute('aria-label', show ? 'Sembunyikan password' : 'Tampilkan password');
+      b.replaceChildren(App.svg(show ? 'eyeoff' : 'eye'));
+      input.focus();
+    });
+    box.append(b);
   };
 
   // Hitung klik tanpa menunda pengunjung membuka link.

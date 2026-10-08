@@ -23,12 +23,14 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
   <meta name="theme-color" content="#121a33">
+  <link rel="preconnect" href="https://script.google.com">
+  <link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&display=swap">
-  <link rel="stylesheet" href="style.css?v=7">
-  <link rel="stylesheet" href="charts.css?v=7">
-  <link rel="stylesheet" href="admin.css?v=7">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400..800&display=swap">
+  <link rel="stylesheet" href="style.css?v=8">
+  <link rel="stylesheet" href="charts.css?v=8">
+  <link rel="stylesheet" href="admin.css?v=8">
 </head>
 <body>
   <div class="splash" id="splash" role="status" aria-label="Memuat">
@@ -53,28 +55,28 @@
     <!-- Panel -->
     <section id="appView" hidden>
       <header class="bar">
-        <div class="brand"><img src="assets/logo-disc.png" alt="" width="40" height="40"><h1>Panel admin</h1></div>
+        <div class="brand"><img src="assets/logo-disc.png" alt="" width="40" height="40"><h1 class="sr">Panel admin</h1></div>
         <div class="bar-actions">
-          <a class="btn" href="./" target="_blank" rel="noopener">Lihat halaman</a>
-          <button class="icon-btn theme-btn" id="themeBtn" type="button" aria-label="Ganti tema terang atau gelap"></button>
-          <button class="btn" id="logoutBtn" type="button">Keluar</button>
+          <a class="icon-btn" id="viewBtn" href="./" target="_blank" rel="noopener" aria-label="Lihat halaman" title="Lihat halaman"></a>
+          <button class="icon-btn theme-btn" id="themeBtn" type="button" aria-label="Ganti tema terang atau gelap" title="Ganti tema"></button>
+          <button class="icon-btn" id="logoutBtn" type="button" aria-label="Keluar" title="Keluar"></button>
         </div>
       </header>
 
       <div class="tabs" role="tablist">
-        <button class="tab" role="tab" id="tabItems" data-tab="items" aria-selected="true" aria-controls="panelItems" type="button">Item</button>
-        <button class="tab" role="tab" id="tabForms" data-tab="forms" aria-selected="false" aria-controls="panelForms" type="button">Form</button>
-        <button class="tab" role="tab" id="tabResults" data-tab="results" aria-selected="false" aria-controls="panelResults" type="button">Hasil</button>
-        <button class="tab" role="tab" id="tabNames" data-tab="names" aria-selected="false" aria-controls="panelNames" type="button">Daftar nama</button>
-        <button class="tab" role="tab" id="tabSettings" data-tab="settings" aria-selected="false" aria-controls="panelSettings" type="button">Pengaturan</button>
+        <button class="tab" role="tab" id="tabItems" data-tab="items" aria-selected="true" aria-controls="panelItems" type="button" title="Item" aria-label="Item"><span class="tic" data-i="list"></span><span class="lbl">Item</span></button>
+        <button class="tab" role="tab" id="tabForms" data-tab="forms" aria-selected="false" aria-controls="panelForms" type="button" title="Form" aria-label="Form"><span class="tic" data-i="form"></span><span class="lbl">Form</span></button>
+        <button class="tab" role="tab" id="tabResults" data-tab="results" aria-selected="false" aria-controls="panelResults" type="button" title="Hasil" aria-label="Hasil"><span class="tic" data-i="chart"></span><span class="lbl">Hasil</span></button>
+        <button class="tab" role="tab" id="tabNames" data-tab="names" aria-selected="false" aria-controls="panelNames" type="button" title="Daftar nama" aria-label="Daftar nama"><span class="tic" data-i="users"></span><span class="lbl">Nama</span></button>
+        <button class="tab" role="tab" id="tabSettings" data-tab="settings" aria-selected="false" aria-controls="panelSettings" type="button" title="Pengaturan" aria-label="Pengaturan"><span class="tic" data-i="settings"></span><span class="lbl">Pengaturan</span></button>
       </div>
 
       <div id="panelItems" role="tabpanel" aria-labelledby="tabItems">
         <div class="toolbar">
-          <button class="btn btn-primary" id="addLink" type="button">Tambah link</button>
-          <button class="btn" id="addFolder" type="button">Tambah folder</button>
-          <button class="btn" id="addForm" type="button">Tambah form</button>
-          <button class="btn" id="addDash" type="button">Tambah dashboard</button>
+          <button class="btn tool btn-primary" id="addLink" type="button" title="Tambah link" aria-label="Tambah link"><span class="tic" data-i="link"></span><span>Link</span></button>
+          <button class="btn tool" id="addFolder" type="button" title="Tambah folder" aria-label="Tambah folder"><span class="tic" data-i="folder"></span><span>Folder</span></button>
+          <button class="btn tool" id="addForm" type="button" title="Tambah form" aria-label="Tambah form"><span class="tic" data-i="form"></span><span>Form</span></button>
+          <button class="btn tool" id="addDash" type="button" title="Tambah dashboard" aria-label="Tambah dashboard"><span class="tic" data-i="chart"></span><span>Dashboard</span></button>
         </div>
         <div id="tree"></div>
         <p class="hint" id="treeHint">Tahan dan seret pegangan di sisi kiri untuk mengubah urutan atau memindahkan item ke dalam folder. Saklar mengatur tampil di halaman publik.</p>
@@ -223,12 +225,12 @@
   <div id="toast" role="status" aria-live="polite"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15/Sortable.min.js"></script>
-  <script src="config.js?v=7"></script>
-  <script src="common.js?v=7"></script>
-  <script src="charts.js?v=7"></script>
-  <script src="admin.js?v=7"></script>
-  <script src="admin-forms.js?v=7"></script>
-  <script src="admin-names.js?v=7"></script>
-  <script src="admin-results.js?v=7"></script>
+  <script src="config.js?v=8"></script>
+  <script src="common.js?v=8"></script>
+  <script src="charts.js?v=8"></script>
+  <script src="admin.js?v=8"></script>
+  <script src="admin-forms.js?v=8"></script>
+  <script src="admin-names.js?v=8"></script>
+  <script src="admin-results.js?v=8"></script>
 </body>
 </html>
