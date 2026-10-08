@@ -182,6 +182,23 @@
     }
   }
 
+  // Perubahan di Sheets tampil tanpa muat ulang: cek diam-diam saat tab dibuka kembali dan tiap menit.
+  async function refreshQuiet() {
+    if (document.hidden || !data) return;
+    try {
+      const fresh = await App.get({ action: 'public' }, { silent: true });
+      writeCache(fresh);
+      if (JSON.stringify(fresh) !== JSON.stringify(data)) {
+        data = fresh;
+        applySettings(fresh.settings);
+        render();
+      }
+    } catch (e) { /* abaikan, coba lagi nanti */ }
+  }
+  document.addEventListener('visibilitychange', refreshQuiet);
+  window.addEventListener('focus', refreshQuiet);
+  setInterval(refreshQuiet, 60000);
+
   window.addEventListener('hashchange', function () {
     render();
     window.scrollTo(0, 0);
