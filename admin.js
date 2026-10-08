@@ -62,6 +62,7 @@
   function showApp() {
     $('loginView').hidden = true;
     $('appView').hidden = false;
+    if (!window.__prefetched) { window.__prefetched = true; setTimeout(prefetch, 400); }
   }
 
   function setBusy(button, busy) {
@@ -607,8 +608,42 @@
     }
   }
 
+  // Tampilkan data tersimpan dulu (langsung), lalu perbarui diam-diam dari server.
+  const memo = {};
+  function swr(action, payload, onData) {
+    const key = action + JSON.stringify(payload || {});
+    const had = Object.prototype.hasOwnProperty.call(memo, key);
+    const prev = memo[key];
+    if (had) onData(prev);
+    return call(action, payload, { silent: had }).then(function (d) {
+      if (d === undefined) return d; // sesi berakhir
+      memo[key] = d;
+      if (!had || JSON.stringify(d) !== JSON.stringify(prev)) onData(d);
+      return d;
+    });
+  }
+  function forget(prefix) { Object.keys(memo).forEach(function (k) { if (k.indexOf(prefix) === 0) delete memo[k]; }); }
+  // Menghangatkan data tab lain di latar belakang, jadi berpindah tab tidak menunggu server.
+  function prefetch() {
+    const quiet = { silent: true };
+    call('admin.forms.list', {}, quiet).then(function (d) {
+      if (d === undefined) return;
+      memo['admin.forms.list{}'] = d;
+      const first = d.forms[0];
+      return call('admin.names.lists', {}, quiet).then(function (n) {
+        if (n !== undefined) memo['admin.names.lists{}'] = n;
+        if (!first) return;
+        const p = { form_id: first.form_id, filter: 'aktif' };
+        return call('admin.results', p, quiet).then(function (r) {
+          if (r !== undefined) memo['admin.results' + JSON.stringify(p)] = r;
+        });
+      });
+    }).catch(function () { /* hanya penghangat, abaikan */ });
+  }
+
   // Dipakai admin-forms.js dan admin-names.js.
   window.Admin = {
+    swr: swr, forget: forget, prefetch: prefetch,
     call: call, toast: toast, state: state, setBusy: setBusy,
     onTab: function (name, fn) { tabHooks[name] = fn; },
     selectTab: selectTab,

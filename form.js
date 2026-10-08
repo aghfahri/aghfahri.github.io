@@ -67,8 +67,9 @@
     const v = ans[q.id];
     return Array.isArray(v) ? v.length === 0 : v === undefined || v === null || String(v).trim() === '';
   }
+  function word() { return (def && def.form && def.form.label_blok) || 'Soal'; }
   function checkQ(q) {
-    if (isEmpty(q)) return q.wajib ? 'Pertanyaan ini wajib dijawab.' : '';
+    if (isEmpty(q)) return q.wajib ? word() + ' ini wajib dijawab.' : '';
     if (q.tipe === 'centang') {
       const n = ans[q.id].length;
       if (n < q.min_pilih) return 'Pilih minimal ' + q.min_pilih + '.';
@@ -419,7 +420,9 @@
     // Cari halaman pertama yang bermasalah.
     for (let i = 0; i < pages.length; i++) {
       if (checkPage(i).length) {
-        banner = 'Masih ada pertanyaan yang perlu diperbaiki.';
+        banner = f.mode_tampilan === 'per_blok'
+          ? 'Masih ada jawaban wajib yang belum diisi di ' + word() + ' ' + (i + 1) + '.'
+          : 'Masih ada ' + word().toLowerCase() + ' yang perlu diperbaiki.';
         if (f.mode_tampilan === 'per_blok') page = i;
         showQuestions();
         if (f.mode_tampilan === 'per_blok') showErrors(i);
@@ -427,6 +430,16 @@
         return;
       }
     }
+    // Peringatan sebelum kirim.
+    const lines = ['Pastikan semua jawaban sudah sesuai sebelum dikirim.'];
+    if (f.identitas !== 'anonim' && nama) lines.push('Dikirim atas nama ' + nama + '.');
+    if (f.identitas !== 'anonim') {
+      lines.push(f.kuota_per_nama > 1
+        ? 'Anda bisa mengirim ulang sampai ' + f.kuota_per_nama + ' kali. Jawaban terakhir yang berlaku.'
+        : 'Setelah dikirim, jawaban tidak dapat diubah.');
+    }
+    const sure = await App.confirm({ title: 'Kirim jawaban?', lines: lines, ok: 'Ya, kirim', cancel: 'Periksa lagi' });
+    if (!sure) return;
     busy = true; banner = '';
     showQuestions();
     if (!rid) rid = App.randomId(20);
@@ -509,7 +522,7 @@
     }
     setup();
     if (!def.form.status.buka) { showClosed(def.form.status.alasan); return; }
-    if (!def.blocks.length) { setStage(msgCard('Form ini belum berisi pertanyaan.', '')); return; }
+    if (!def.blocks.length) { setStage(msgCard('Form ini belum berisi ' + word().toLowerCase() + '.', '')); return; }
     if (def.form.identitas === 'anonim') { nama = ''; showQuestions(); }
     else if (nama && def.form.identitas === 'wajib_nama') showQuestions();
     else showIdentity();

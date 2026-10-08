@@ -42,6 +42,7 @@
     settings: '<circle cx="12" cy="12" r="3"/><path d="M19.400 15a1.700 1.700 0 0 0 .3 1.800l.1.1a2 2 0 1 1-2.800 2.800l-.1-.1a1.700 1.700 0 0 0-1.800-.3 1.700 1.700 0 0 0-1 1.500V21a2 2 0 1 1-4 0v-.1a1.700 1.700 0 0 0-1.100-1.500 1.700 1.700 0 0 0-1.800.3l-.1.1a2 2 0 1 1-2.800-2.800l.1-.1a1.700 1.700 0 0 0 .3-1.800 1.700 1.700 0 0 0-1.500-1H3a2 2 0 1 1 0-4h.1a1.700 1.700 0 0 0 1.500-1.100 1.700 1.700 0 0 0-.3-1.800l-.1-.1a2 2 0 1 1 2.800-2.800l.1.100a1.700 1.700 0 0 0 1.800.3H9a1.700 1.700 0 0 0 1-1.500V3a2 2 0 1 1 4 0v.1a1.700 1.700 0 0 0 1 1.500 1.700 1.700 0 0 0 1.800-.3l.1-.1a2 2 0 1 1 2.800 2.800l-.1.1a1.700 1.700 0 0 0-.3 1.800V9a1.700 1.700 0 0 0 1.500 1H21a2 2 0 1 1 0 4h-.1a1.700 1.700 0 0 0-1.500 1z"/>',
     users: '<circle cx="9" cy="8" r="3.500"/><path d="M2 20a7 7 0 0 1 14 0M16 4.500a3.500 3.500 0 0 1 0 7M18 14.500a7 7 0 0 1 4 5.500"/>',
     list: '<path d="M8 6h13M8 12h13M8 18h13M3.500 6h.01M3.500 12h.01M3.500 18h.01"/>',
+    refresh: '<path d="M20 11a8 8 0 1 0-2.300 5.700M20 4v7h-7"/>',
     sheet: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M9 4v16"/>'
   };
 
@@ -391,6 +392,41 @@
     document.body.append(d);
     d.showModal();
   }
+
+  // Dialog konfirmasi. Mengembalikan Promise<boolean>. lines: teks biasa (bukan HTML).
+  App.confirm = function (o) {
+    return new Promise(function (resolve) {
+      const d = document.createElement('dialog');
+      d.className = 'install-dlg';
+      const box = document.createElement('div');
+      box.className = 'in';
+      const h = document.createElement('h2');
+      h.textContent = o.title;
+      box.append(h);
+      (o.lines || []).forEach(function (t) {
+        const p = document.createElement('p');
+        p.className = 'dlg-line';
+        p.textContent = t;
+        box.append(p);
+      });
+      const row = document.createElement('div');
+      row.className = 'dlg-actions';
+      const no = document.createElement('button');
+      no.type = 'button'; no.className = 'btn'; no.textContent = o.cancel || 'Batal';
+      const yes = document.createElement('button');
+      yes.type = 'button'; yes.className = 'btn btn-primary'; yes.textContent = o.ok || 'Ya';
+      let result = false;
+      no.addEventListener('click', function () { d.close(); });
+      yes.addEventListener('click', function () { result = true; d.close(); });
+      row.append(no, yes);
+      box.append(row);
+      d.append(box);
+      d.addEventListener('close', function () { d.remove(); resolve(result); });
+      document.body.append(d);
+      d.showModal();
+      no.focus();
+    });
+  };
 
   // Memasang perilaku tombol "pasang ke layar". Tombol disembunyikan bila sudah terpasang sebagai aplikasi.
   App.installButton = function (btn) {

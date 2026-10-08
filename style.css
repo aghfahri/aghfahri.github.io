@@ -403,7 +403,7 @@ svg.i { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round
 
 /* Layar ponsel (patokan iPhone 16, lebar 393): semua ukuran berbasis rem diperkecil. */
 @media (max-width: 480px) {
-  html { font-size: 14px; }
+  html { font-size: 13px; }
   .wrap { padding: 1.6rem 1.1rem 3rem; }
   .avatar { width: 5.2rem; height: 5.2rem; margin-bottom: 0.95rem; }
   .avatar::before { inset: -0.38rem; }
@@ -428,3 +428,7 @@ svg.i { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round
   *, *::before, *::after { animation: none !important; transition: none !important; }
   .loader .sweep { background-position: 50% 0; }
 }
+
+.dlg-line { margin: 0 0 0.6rem; color: var(--muted); }
+.dlg-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 1rem; }
+.install-dlg .dlg-actions .btn { width: 100%; }

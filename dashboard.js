@@ -34,27 +34,59 @@
     $('dhead').hidden = false;
 
     const frag = document.createDocumentFragment();
-    const stat = el('section', 'card stat');
-    const num = el('div', 'num');
-    num.append(el('strong', '', String(d.total)), el('span', '', d.total === 1 ? 'responden' : 'responden'));
-    const upd = el('div', 'upd');
-    if (d.terakhir) upd.append(el('div', '', 'Jawaban terakhir masuk ' + d.terakhir.slice(0, 16)));
-    const refresh = el('button', 'btn', 'Perbarui'); refresh.type = 'button';
-    refresh.addEventListener('click', function () { load(false, refresh); });
-    upd.append(refresh);
-    stat.append(num, upd);
-    frag.append(stat);
+    const C = App.charts;
+    const word = d.form.label_blok || 'Soal';
+
+    // Angka utama: responden, hari ini, rata-rata skor.
+    const skor = [];
+    d.blocks.forEach(function (b) { b.questions.forEach(function (q) { if (q.skala && q.skala.rata !== null) skor.push({ v: q.skala.rata, n: q.n, max: q.skala.maks }); }); });
+    const kpi = el('section', 'kpis');
+    function tile(cls, value, label) {
+      const t = el('div', 'kpi ' + cls);
+      t.append(el('strong', '', value), el('span', '', label));
+      kpi.append(t);
+    }
+    tile('hero', String(d.total), 'responden');
+    tile('', String(d.hari_ini || 0), 'hari ini');
+    if (skor.length) {
+      const w = skor.reduce(function (s, x) { return s + x.n; }, 0);
+      const avg = w ? skor.reduce(function (s, x) { return s + x.v * x.n; }, 0) / w : 0;
+      tile('', C.fmt(Math.round(avg * 10) / 10), 'skor rata-rata');
+    }
+    frag.append(kpi);
+
+    const trend = d.total ? C.trend(d.seri) : null;
+    if (trend) {
+      const card = el('section', 'card dsec trendcard');
+      const top = el('div', 'trendtop');
+      const ref = el('button', 'icon-btn sm'); ref.type = 'button';
+      ref.setAttribute('aria-label', 'Perbarui'); ref.append(App.svg('refresh'));
+      ref.addEventListener('click', function () { load(false, ref); });
+      const stamp = el('span', 'stamp', d.terakhir ? 'Terakhir ' + d.terakhir.slice(8, 10) + '/' + d.terakhir.slice(5, 7) + ' ' + d.terakhir.slice(11, 16) : '');
+      top.append(stamp, ref);
+      card.append(top, trend);
+      frag.append(card);
+    } else {
+      const ref = el('button', 'icon-btn sm refresh-solo'); ref.type = 'button';
+      ref.setAttribute('aria-label', 'Perbarui'); ref.append(App.svg('refresh'));
+      ref.addEventListener('click', function () { load(false, ref); });
+      frag.append(ref);
+    }
 
     if (!d.blocks.length) {
-      frag.append(note('Belum ada hasil yang ditampilkan.', 'Pertanyaan belum dipilih untuk tampil di dashboard.'));
+      frag.append(note('Belum ada hasil yang ditampilkan.', word + ' belum dipilih untuk tampil di dashboard.'));
     } else if (!d.total) {
       frag.append(note('Belum ada jawaban.', 'Hasil akan muncul di sini setelah ada yang mengisi.'));
     } else {
+      const ov = C.overview(d.blocks, word);
+      if (ov) frag.append(ov);
+      const rk = C.ranking(d.blocks, word);
+      if (rk) frag.append(rk);
       d.blocks.forEach(function (b) {
         const sec = el('section', 'card dsec');
-        const label = (d.form.label_blok || 'Soal') + ' ' + b.no;
+        const label = word + ' ' + b.no;
         sec.append(el('h2', '', b.judul ? label + ' · ' + b.judul : label));
-        b.questions.forEach(function (q) { sec.append(App.charts.question(q, false)); });
+        b.questions.forEach(function (q) { sec.append(C.question(q, false)); });
         frag.append(sec);
       });
     }

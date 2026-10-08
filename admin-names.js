@@ -14,8 +14,7 @@
     const host = $('namesLists');
     if (!lists.length) host.replaceChildren(loadingBox());
     try {
-      lists = (await A.call('admin.names.lists')).lists;
-      renderLists();
+      await A.swr('admin.names.lists', {}, function (d) { lists = d.lists; renderLists(); });
     } catch (e) {
       if (e.code !== 'AUTH') host.replaceChildren(el('div', 'empty', e.message));
     }

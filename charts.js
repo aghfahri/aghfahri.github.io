@@ -1,11 +1,91 @@
-/* AGHFAHRI — grafik hasil form (dipakai dashboard publik dan panel admin) */
+/* AGHFAHRI — grafik hasil form (dipakai dashboard publik dan panel admin).
+   Bentuk: donat, batang, tumpuk 100%, histogram + meter, tren per hari. Teks sengaja sedikit. */
 (function () {
   'use strict';
   const el = App.el;
+  const NS = 'http://www.w3.org/2000/svg';
+  const MAX_SLICES = 4; // warna kategori yang aman dibedakan
 
   function pct(a, b) { return b ? Math.round((a / b) * 1000) / 10 : 0; }
   function fmt(n) { return String(n).replace('.', ','); }
+  function svg(tag, attrs) {
+    const n = document.createElementNS(NS, tag);
+    Object.keys(attrs || {}).forEach(function (k) { n.setAttribute(k, attrs[k]); });
+    return n;
+  }
+  function tip(node, text) { node.setAttribute('data-tip', text); return node; }
+  function color(i) { return 'var(--c' + ((i % MAX_SLICES) + 1) + ')'; }
 
+  // ── Tooltip (satu untuk seluruh halaman; sentuh = ketuk) ──
+  let tipEl = null;
+  function tipNode() {
+    if (!tipEl) { tipEl = el('div', 'viz-tip'); tipEl.setAttribute('role', 'tooltip'); document.body.append(tipEl); }
+    return tipEl;
+  }
+  function showTip(target, x, y) {
+    const t = tipNode();
+    t.textContent = target.getAttribute('data-tip');
+    t.classList.add('on');
+    const w = t.offsetWidth, h = t.offsetHeight;
+    t.style.left = Math.max(8, Math.min(window.innerWidth - w - 8, x - w / 2)) + 'px';
+    t.style.top = Math.max(8, y - h - 14) + 'px';
+  }
+  function hideTip() { if (tipEl) tipEl.classList.remove('on'); }
+  document.addEventListener('pointermove', function (e) {
+    const t = e.target.closest && e.target.closest('[data-tip]');
+    if (t && e.pointerType === 'mouse') showTip(t, e.clientX, e.clientY); else if (e.pointerType === 'mouse') hideTip();
+  });
+  document.addEventListener('pointerdown', function (e) {
+    const t = e.target.closest && e.target.closest('[data-tip]');
+    if (t) showTip(t, e.clientX, e.clientY); else hideTip();
+  });
+  window.addEventListener('scroll', hideTip, { passive: true });
+
+  // ── Legenda ──
+  function legend(items, total) {
+    const ul = el('ul', 'legend');
+    items.forEach(function (o, i) {
+      const li = el('li');
+      const dot = el('span', 'dot'); dot.style.background = color(i);
+      li.append(dot, el('span', 'lg-label', o.label), el('b', '', fmt(pct(o.jumlah, total)) + '%'));
+      ul.append(li);
+    });
+    return ul;
+  }
+
+  // ── Donat ──
+  function donut(q) {
+    const total = q.opsi.reduce(function (s, o) { return s + o.jumlah; }, 0);
+    const wrap = el('div', 'donut-wrap');
+    const s = svg('svg', { viewBox: '0 0 120 120', class: 'donut', role: 'img', 'aria-label': q.teks });
+    s.append(svg('circle', { cx: 60, cy: 60, r: 46, fill: 'none', 'stroke-width': 13, class: 'donut-track' }));
+    let start = 0;
+    let lead = null;
+    q.opsi.forEach(function (o, i) {
+      if (!o.jumlah) return;
+      if (!lead || o.jumlah > lead.o.jumlah) lead = { o: o, i: i };
+      const len = (o.jumlah / total) * 100;
+      const gap = len >= 100 ? 0 : 0.8;
+      const seg = svg('circle', {
+        cx: 60, cy: 60, r: 46, fill: 'none', 'stroke-width': 13, pathLength: 100, class: 'donut-seg',
+        'stroke-dasharray': Math.max(0.2, len - gap) + ' ' + (100 - Math.max(0.2, len - gap)),
+        'stroke-dashoffset': -start, transform: 'rotate(-90 60 60)', stroke: color(i)
+      });
+      seg.style.setProperty('--d', (i * 90) + 'ms');
+      tip(seg, o.label + ' · ' + o.jumlah + ' (' + fmt(pct(o.jumlah, total)) + '%)');
+      s.append(seg);
+      start += len;
+    });
+    wrap.append(s);
+    const mid = el('div', 'donut-mid');
+    mid.append(el('strong', '', lead ? fmt(Math.round(pct(lead.o.jumlah, total))) + '%' : '–'));
+    wrap.append(mid);
+    const box = el('div', 'donut-box');
+    box.append(wrap, legend(q.opsi, total));
+    return box;
+  }
+
+  // ── Batang mendatar ──
   function bars(q) {
     const wrap = el('div', 'bars');
     const max = q.opsi.reduce(function (m, o) { return Math.max(m, o.jumlah); }, 0);
@@ -18,34 +98,53 @@
       const fill = el('span', 'bar-fill');
       fill.style.setProperty('--w', p + '%');
       track.append(fill);
+      tip(row, o.label + ' · ' + o.jumlah + ' (' + fmt(p) + '%)');
       row.append(head, track);
       wrap.append(row);
     });
     return wrap;
   }
 
+  // ── Meter setengah lingkaran + histogram ──
+  function gauge(s) {
+    const frac = s.rata === null ? 0 : (s.rata - s.min) / (s.maks - s.min);
+    const box = el('div', 'gauge');
+    const g = svg('svg', { viewBox: '0 0 100 58', role: 'img', 'aria-label': 'Rata-rata ' + (s.rata === null ? '' : fmt(s.rata)) });
+    g.append(svg('path', { d: 'M10 50 A40 40 0 0 1 90 50', pathLength: 100, class: 'g-track', fill: 'none', 'stroke-width': 9, 'stroke-linecap': 'round' }));
+    const f = svg('path', { d: 'M10 50 A40 40 0 0 1 90 50', pathLength: 100, class: 'g-fill', fill: 'none', 'stroke-width': 9, 'stroke-linecap': 'round' });
+    f.style.setProperty('--v', Math.max(0.5, Math.min(100, frac * 100)));
+    g.append(f);
+    box.append(g);
+    const c = el('div', 'g-mid');
+    c.append(el('strong', '', s.rata === null ? '–' : fmt(s.rata)), el('small', '', '/ ' + s.maks));
+    box.append(c);
+    return box;
+  }
+
   function scale(q) {
     const s = q.skala;
     const wrap = el('div', 'scale-chart');
-    const top = el('div', 'avg');
-    top.append(el('strong', '', s.rata === null ? '–' : fmt(s.rata)), el('span', '', 'rata-rata dari ' + s.min + ' sampai ' + s.maks));
-    wrap.append(top);
+    wrap.append(gauge(s));
+    const hist = el('div', 'hist');
     const max = s.dist.reduce(function (m, d) { return Math.max(m, d.jumlah); }, 0);
     const cols = el('div', 'cols');
     s.dist.forEach(function (d) {
       const c = el('div', 'col' + (max > 0 && d.jumlah === max ? ' top' : ''));
       const bar = el('span', 'col-bar');
       bar.style.setProperty('--h', (max ? (d.jumlah / max) * 100 : 0) + '%');
-      c.append(el('span', 'col-n', String(d.jumlah)), el('span', 'col-track'), el('span', 'col-lab', String(d.nilai)));
-      c.querySelector('.col-track').append(bar);
+      const track = el('span', 'col-track');
+      track.append(bar);
+      tip(c, 'Nilai ' + d.nilai + ' · ' + d.jumlah + ' (' + fmt(pct(d.jumlah, q.n)) + '%)');
+      c.append(el('span', 'col-n', d.jumlah ? String(d.jumlah) : ''), track, el('span', 'col-lab', String(d.nilai)));
       cols.append(c);
     });
-    wrap.append(cols);
+    hist.append(cols);
     if (s.label_min || s.label_maks) {
       const ends = el('div', 'scale-ends');
       ends.append(el('span', '', s.label_min || ''), el('span', '', s.label_maks || ''));
-      wrap.append(ends);
+      hist.append(ends);
     }
+    wrap.append(hist);
     return wrap;
   }
 
@@ -63,32 +162,174 @@
     return d;
   }
 
+  // ── Tabel (pengganti grafik, untuk keterbacaan) ──
+  function tableOf(q) {
+    const t = el('table', 'mini');
+    const rows = [];
+    if (q.opsi) q.opsi.forEach(function (o) { rows.push([o.label, o.jumlah, fmt(pct(o.jumlah, q.n)) + '%']); });
+    else if (q.skala) q.skala.dist.forEach(function (d) { rows.push(['Nilai ' + d.nilai, d.jumlah, fmt(pct(d.jumlah, q.n)) + '%']); });
+    rows.forEach(function (r) {
+      const tr = el('tr');
+      r.forEach(function (c, i) { tr.append(el(i ? 'td' : 'th', i ? 'num' : '', String(c))); });
+      t.append(tr);
+    });
+    return t;
+  }
+
   // q: satu pertanyaan hasil ringkasan dari server. admin = tampilkan isi jawaban teks.
   function question(q, admin) {
     const card = el('section', 'qres');
-    const h = el('h3', '', q.teks);
-    card.append(h);
-    const meta = el('p', 'qmeta', q.n + ' yang menjawab' + (q.tipe === 'centang' ? ' (boleh pilih lebih dari satu)' : ''));
-    card.append(meta);
+    const head = el('div', 'qhead');
+    const title = el('h3', 'qtitle', q.teks);
+    title.addEventListener('click', function () { title.classList.toggle('open'); });
+    head.append(title, el('span', 'qn', String(q.n)));
+    card.append(head);
+
     if (admin && (q.disembunyikan || q.tampil_dashboard === false)) {
       const tags = [];
       if (q.disembunyikan) tags.push('disembunyikan dari form');
       if (q.tampil_dashboard === false) tags.push('tidak tampil di dashboard publik');
       card.append(el('p', 'tagline', tags.join(' · ')));
     }
+
+    const body = el('div', 'qbody');
+    let hasTable = false;
     if (!q.n) {
-      card.append(el('p', 'none', 'Belum ada jawaban.'));
+      body.append(el('p', 'none', 'Belum ada jawaban.'));
     } else if (q.opsi) {
-      card.append(bars(q));
+      const donutOk = q.tipe !== 'centang' && q.opsi.length >= 2 && q.opsi.length <= MAX_SLICES;
+      body.append(donutOk ? donut(q) : bars(q));
+      if (q.tipe === 'centang') body.append(el('p', 'tagline', 'bisa lebih dari satu'));
+      hasTable = true;
     } else if (q.skala) {
-      card.append(scale(q));
+      body.append(scale(q));
+      hasTable = true;
     } else if (q.jawaban) {
-      card.append(texts(q));
+      body.append(texts(q));
     } else {
-      card.append(el('p', 'none', 'Isi jawaban tidak ditampilkan di halaman publik.'));
+      body.append(el('p', 'none', 'Isi jawaban tidak ditampilkan di halaman publik.'));
+    }
+    card.append(body);
+
+    if (hasTable) {
+      const tb = el('button', 'qtog'); tb.type = 'button';
+      tb.setAttribute('aria-label', 'Lihat sebagai tabel'); tb.append(App.svg('sheet'));
+      let table = null;
+      tb.addEventListener('click', function () {
+        if (!table) { table = tableOf(q); table.hidden = true; card.append(table); }
+        const showTable = table.hidden;
+        table.hidden = !showTable; body.hidden = showTable;
+        tb.classList.toggle('on', showTable);
+        tb.setAttribute('aria-label', showTable ? 'Lihat sebagai grafik' : 'Lihat sebagai tabel');
+      });
+      head.append(tb);
     }
     return card;
   }
 
-  App.charts = { question: question };
+  // ── Tumpuk 100% lintas blok: soal dengan pilihan yang sama dibandingkan sekaligus ──
+  function overview(blocks, labelBlok) {
+    const groups = {};
+    blocks.forEach(function (b) {
+      b.questions.forEach(function (q) {
+        if (!q.opsi || q.tipe === 'centang' || !q.n || q.opsi.length < 2 || q.opsi.length > MAX_SLICES) return;
+        const sig = q.opsi.map(function (o) { return o.label; }).join('\u0001');
+        (groups[sig] = groups[sig] || []).push({ label: labelBlok + ' ' + b.no, q: q });
+      });
+    });
+    let best = null;
+    Object.keys(groups).forEach(function (k) { if (groups[k].length >= 2 && (!best || groups[k].length > best.length)) best = groups[k]; });
+    if (!best) return null;
+
+    const card = el('section', 'card dsec ov');
+    const opsi = best[0].q.opsi;
+    card.append(legend(opsi.map(function (o) { return { label: o.label, jumlah: 0 }; }), 1));
+    card.querySelectorAll('.legend b').forEach(function (b) { b.remove(); });
+    const list = el('div', 'stack-list');
+    best.forEach(function (r) {
+      const total = r.q.opsi.reduce(function (s, o) { return s + o.jumlah; }, 0);
+      const row = el('div', 'stack-row');
+      row.append(el('span', 'stack-lab', r.label));
+      const track = el('div', 'stack-track');
+      r.q.opsi.forEach(function (o, i) {
+        if (!o.jumlah) return;
+        const p = pct(o.jumlah, total);
+        const seg = el('span', 'seg', p >= 14 ? Math.round(p) + '%' : '');
+        seg.style.flexGrow = String(o.jumlah);
+        seg.style.background = color(i);
+        tip(seg, r.label + ' · ' + o.label + ' · ' + o.jumlah + ' (' + fmt(p) + '%)');
+        track.append(seg);
+      });
+      row.append(track);
+      list.append(row);
+    });
+    card.append(list);
+    return card;
+  }
+
+  // Peringkat nilai rata-rata untuk soal berskala (bila ada dua atau lebih).
+  function ranking(blocks, labelBlok) {
+    const rows = [];
+    blocks.forEach(function (b) {
+      b.questions.forEach(function (q) {
+        if (q.skala && q.skala.rata !== null) rows.push({ label: labelBlok + ' ' + b.no, v: q.skala.rata, min: q.skala.min, max: q.skala.maks, teks: q.teks });
+      });
+    });
+    if (rows.length < 2) return null;
+    const card = el('section', 'card dsec');
+    const wrap = el('div', 'bars rank');
+    rows.forEach(function (r) {
+      const p = ((r.v - r.min) / (r.max - r.min)) * 100;
+      const row = el('div', 'bar-row');
+      const head = el('div', 'bar-head');
+      head.append(el('span', 'bar-label', r.label), el('span', 'bar-val', fmt(r.v) + ' / ' + r.max));
+      const track = el('div', 'bar-track'); const fill = el('span', 'bar-fill');
+      fill.style.setProperty('--w', Math.max(1, p) + '%'); track.append(fill);
+      tip(row, r.teks + ' · ' + fmt(r.v));
+      row.append(head, track); wrap.append(row);
+    });
+    card.append(wrap);
+    return card;
+  }
+
+  // ── Tren: jumlah jawaban masuk per hari (atau per jam) ──
+  function trend(seri) {
+    const pts = (seri && seri.titik) || [];
+    if (!pts.length) return null;
+    const perJam = seri.granul === 'jam';
+    const map = {};
+    pts.forEach(function (p) { map[p.t] = p.n; });
+    const parse = function (t) { return perJam ? Date.UTC(+t.slice(0, 4), +t.slice(5, 7) - 1, +t.slice(8, 10), +t.slice(11, 13)) : Date.UTC(+t.slice(0, 4), +t.slice(5, 7) - 1, +t.slice(8, 10)); };
+    const step = perJam ? 3600000 : 86400000;
+    const key = function (ms) {
+      const d = new Date(ms); const p = function (n) { return String(n).padStart(2, '0'); };
+      const day = d.getUTCFullYear() + '-' + p(d.getUTCMonth() + 1) + '-' + p(d.getUTCDate());
+      return perJam ? day + ' ' + p(d.getUTCHours()) : day;
+    };
+    const t0 = parse(pts[0].t), t1 = parse(pts[pts.length - 1].t);
+    const from = Math.max(t0, t1 - 44 * step);
+    const cols = [];
+    for (let ms = from; ms <= t1; ms += step) cols.push({ k: key(ms), n: map[key(ms)] || 0 });
+    const max = cols.reduce(function (m, c) { return Math.max(m, c.n); }, 0);
+    const label = function (k) { return perJam ? k.slice(11, 13) + '.00' : k.slice(8, 10) + '/' + k.slice(5, 7); };
+
+    if (cols.length < 2) return null;
+    const box = el('div', 'trend');
+    const row = el('div', 'trend-cols');
+    cols.forEach(function (c) {
+      const col = el('div', 'tcol' + (c.n && c.n === max ? ' top' : ''));
+      const bar = el('span', 'tbar');
+      bar.style.setProperty('--h', (max ? (c.n / max) * 100 : 0) + '%');
+      tip(col, label(c.k) + ' · ' + c.n);
+      col.append(bar);
+      row.append(col);
+    });
+    box.append(row);
+    const ax = el('div', 'trend-ax');
+    ax.append(el('span', '', label(cols[0].k)), el('span', '', label(cols[cols.length - 1].k)));
+    box.append(ax);
+    return box;
+  }
+
+  App.charts = { question: question, overview: overview, ranking: ranking, trend: trend, fmt: fmt };
 })();

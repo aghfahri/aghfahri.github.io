@@ -167,10 +167,11 @@
     const host = $('formsList');
     if (!forms.length) host.replaceChildren(loadingBox());
     try {
-      const d = await A.call('admin.forms.list');
-      forms = d.forms;
-      A.state.forms = forms.map(function (f) { return { form_id: f.form_id, judul: f.judul, slug: f.slug, status: f.status, dashboard_aktif: f.dashboard_aktif }; });
-      renderList();
+      await A.swr('admin.forms.list', {}, function (d) {
+        forms = d.forms;
+        A.state.forms = forms.map(function (f) { return { form_id: f.form_id, judul: f.judul, slug: f.slug, status: f.status, dashboard_aktif: f.dashboard_aktif }; });
+        renderList();
+      });
     } catch (e) {
       if (e.code !== 'AUTH') host.replaceChildren(mk('div', 'empty', e.message));
     }

@@ -16,10 +16,8 @@
     return b;
   }
 
-  async function loadForms(selectId) {
+  function fillForms(d, keep) {
     const sel = $('resForm');
-    const keep = selectId || sel.value;
-    const d = await A.call('admin.forms.list');
     sel.replaceChildren();
     d.forms.forEach(function (f) { sel.append(new Option(f.judul + ' (' + f.aktif + ' jawaban)', f.form_id)); });
     if (!d.forms.length) sel.append(new Option('Belum ada form', ''));
@@ -31,15 +29,16 @@
   async function show(selectId) {
     const body = $('resBody');
     try {
-      if (!formsLoaded || selectId) {
-        body.replaceChildren(loadingBox());
-        if (!(await loadForms(selectId))) {
-          $('resActions').replaceChildren();
-          const box = el('div', 'empty');
-          box.append(el('strong', '', 'Belum ada form.'), document.createTextNode('Buat form di tab Form, hasilnya muncul di sini.'));
-          body.replaceChildren(box);
-          return;
-        }
+      const keep = selectId || $('resForm').value;
+      let count = 0;
+      if (!formsLoaded) body.replaceChildren(loadingBox());
+      await A.swr('admin.forms.list', {}, function (d) { count = fillForms(d, keep); });
+      if (!count) {
+        $('resActions').replaceChildren();
+        const box = el('div', 'empty');
+        box.append(el('strong', '', 'Belum ada form.'), document.createTextNode('Buat form di tab Form, hasilnya muncul di sini.'));
+        body.replaceChildren(box);
+        return;
       }
       await loadResults();
     } catch (e) {
@@ -51,11 +50,13 @@
     const id = $('resForm').value;
     if (!id) return;
     const my = ++seq;
-    $('resBody').replaceChildren(loadingBox());
-    const d = await A.call('admin.results', { form_id: id, filter: $('resFilter').value });
-    if (my !== seq) return; // pilihan sudah berganti
-    current = d;
-    render(d);
+    const payload = { form_id: id, filter: $('resFilter').value };
+    if (!current || current.form.form_id !== id) $('resBody').replaceChildren(loadingBox());
+    await A.swr('admin.results', payload, function (d) {
+      if (my !== seq) return; // pilihan sudah berganti
+      current = d;
+      render(d);
+    });
   }
 
   function csvCell(v) {
