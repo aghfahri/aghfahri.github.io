@@ -448,7 +448,16 @@ svg.i { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round
     background: color-mix(in srgb, var(--surface) 78%, transparent);
     -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); box-shadow: var(--shadow-up);
   }
-  .topbar .btn-back { border-color: transparent; background: transparent; }
+  .topbar .btn-back { border-color: transparent !important; background: transparent !important; }
   .topbar .icon-btn { border: 0; background: transparent; box-shadow: none; }
   .wrap { padding-bottom: 7rem; }
 }
+
+/* Bilah navigasi: warna beda dari latar agar jelas terpisah */
+:root { --navbg: color-mix(in srgb, var(--ink) 9%, var(--surface)); }
+.dock, .topbar, .tabs {
+  background: var(--navbg) !important;
+  border-color: color-mix(in srgb, var(--ink) 20%, var(--line)) !important;
+  box-shadow: 0 10px 30px -8px rgba(0,0,0,0.45), 0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent), inset 0 1px 0 rgba(255,255,255,0.06) !important;
+}
+@media (min-width: 601px) { .topbar { background: none !important; border-color: transparent !important; box-shadow: none !important; } }

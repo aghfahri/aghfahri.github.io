@@ -145,3 +145,25 @@ textarea.field { min-height: 6.5rem; resize: vertical; }
   .field { font-size: 0.95rem; min-height: 2.55rem; }
   .reading, .note { font-size: 0.92rem; }
 }
+
+/* Pilihan terpilih: warna, tanda centang, dan animasi — desktop & mobile */
+@keyframes pickPop { 0% { transform: scale(1); } 40% { transform: scale(1.035); } 100% { transform: scale(1); } }
+@keyframes pickIn { from { transform: scale(0.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes pickRing { from { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 55%, transparent); } to { box-shadow: 0 0 0 0.6rem transparent; } }
+.opt, .name-btn, .scale span { transition: background-color 0.18s, border-color 0.18s, color 0.18s, transform 0.18s; }
+.opt:active, .name-btn:active:not([disabled]), .scale label:active span { transform: scale(0.98); }
+.opt:has(input:checked), .name-btn[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 16%, var(--bg));
+  box-shadow: inset 0.3rem 0 0 var(--accent);
+  animation: pickPop 0.28s var(--ease, ease-out), pickRing 0.55s ease-out;
+}
+.opt:has(input:checked) span { font-weight: 600; }
+.opt input { accent-color: var(--accent); }
+.opt input:checked { animation: pickIn 0.25s cubic-bezier(.3,1.6,.5,1); }
+.scale input:checked + span {
+  background: var(--accent); color: var(--on-accent, #1d1400); border-color: var(--accent);
+  animation: pickPop 0.28s ease-out, pickRing 0.55s ease-out; box-shadow: 0 6px 14px -6px var(--accent);
+}
+.name-btn[aria-pressed="true"]::after { content: "✓"; color: var(--accent); font-weight: 800; animation: pickIn 0.25s cubic-bezier(.3,1.6,.5,1); }
+@media (prefers-reduced-motion: reduce) { .opt:has(input:checked), .name-btn[aria-pressed="true"], .scale input:checked + span, .opt input:checked { animation: none; } }
