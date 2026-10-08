@@ -321,3 +321,18 @@ html, body { overflow-x: hidden; }
 .row-head .icon-btn { flex: 0 0 auto; }
 .blk-foot { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.9rem; }
 .qcard > .btn.sm { margin-top: 0.6rem; }
+
+/* Tab admin di bawah layar pada ponsel */
+@media (max-width: 600px) {
+  .tabs {
+    position: fixed; top: auto; z-index: 30; left: 50%; transform: translateX(-50%);
+    bottom: max(0.9rem, env(safe-area-inset-bottom));
+    width: min(calc(100% - 2.2rem), 28rem); margin: 0; justify-content: space-between;
+    box-shadow: var(--shadow-up);
+  }
+  .tab { flex: 1 1 0; }
+  .tab[aria-selected="true"] { flex: 1.8 1 0; }
+  .shell { padding-bottom: 6.5rem; }
+  #toast { bottom: 5.6rem; }
+  .save-bar { bottom: 4.8rem; border-radius: var(--r-md); margin-bottom: 0.5rem; }
+}

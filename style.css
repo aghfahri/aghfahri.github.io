@@ -408,7 +408,8 @@ svg.i { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round
 
 /* Layar ponsel (patokan iPhone 16, lebar 393): semua ukuran berbasis rem diperkecil. */
 @media (max-width: 480px) {
-  html { font-size: 13px; }
+  /* 13px pada lebar 440 (iPhone 16 Pro Max); mengecil proporsional, jadi di 393 (iPhone 16) jarak & rasio sama persis */
+  html { font-size: clamp(11px, 2.9545vw, 13px); }
   .wrap { padding: 1.6rem 1.1rem 5.5rem; }
   .avatar { width: 5.2rem; height: 5.2rem; margin-bottom: 0.95rem; }
   .avatar::before { inset: -0.38rem; }
@@ -436,3 +437,18 @@ svg.i { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round
 .dlg-line { margin: 0 0 0.6rem; color: var(--muted); }
 .dlg-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 1rem; }
 .install-dlg .dlg-actions .btn { width: 100%; }
+
+/* Bilah navigasi di bawah (mudah dijangkau ibu jari) — form & dashboard */
+@media (max-width: 600px) {
+  .topbar {
+    position: fixed; z-index: 30; left: 50%; transform: translateX(-50%);
+    bottom: max(0.9rem, env(safe-area-inset-bottom));
+    width: min(calc(100% - 2.2rem), 28rem); margin: 0 !important; padding: 0.35rem;
+    border: 1px solid var(--line); border-radius: 99px;
+    background: color-mix(in srgb, var(--surface) 78%, transparent);
+    -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); box-shadow: var(--shadow-up);
+  }
+  .topbar .btn-back { border-color: transparent; background: transparent; }
+  .topbar .icon-btn { border: 0; background: transparent; box-shadow: none; }
+  .wrap { padding-bottom: 7rem; }
+}
