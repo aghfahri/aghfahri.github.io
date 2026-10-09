@@ -272,7 +272,6 @@
       ownInp.setAttribute('aria-label', 'Nama Anda');
       ownBox.append(ownInp);
       const note = el('div', 'note'); note.hidden = true;
-      const kuota = f.kuota_per_nama;
 
       const draw = function () {
         const q = search.value.trim().toLowerCase();
@@ -283,14 +282,10 @@
           shown++;
           const b = el('button', 'name-btn'); b.type = 'button';
           b.append(el('span', '', n.nama));
-          const full = n.terisi !== undefined && kuota > 0 && n.terisi >= kuota;
-          if (n.terisi) b.append(el('small', '', 'Sudah mengisi ' + n.terisi + (kuota > 0 ? ' dari ' + kuota : '') + ' kali'));
-          b.disabled = full;
           b.setAttribute('aria-pressed', String(!own && chosen === n.nama));
           b.addEventListener('click', function () {
             own = false; ownBox.hidden = true; chosen = n.nama;
-            note.hidden = !n.terisi;
-            note.textContent = n.terisi ? 'Nama ini sudah mengisi ' + n.terisi + ' kali. Jika dikirim lagi, jawaban terbaru yang berlaku.' : '';
+            note.hidden = true;
             draw();
           });
           list.append(b);

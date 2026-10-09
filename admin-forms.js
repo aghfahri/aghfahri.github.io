@@ -400,9 +400,6 @@
         ])));
       }
       idHost.append(row);
-      if (f.identitas === 'pilih_daftar') {
-        idHost.append(checkbox(f, 'tampil_status_nama', 'Tampilkan keterangan "sudah mengisi" pada nama di daftar'));
-      }
       const lim = mk('div', 'grid2');
       if (f.identitas !== 'anonim') {
         lim.append(field('Kesempatan kirim per nama', input(f, 'kuota_per_nama', { type: 'number', num: true, min: 1, maxv: 50 }),
