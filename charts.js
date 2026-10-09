@@ -15,7 +15,31 @@
     return n;
   }
   function tip(node, text) { node.setAttribute('data-tip', text); return node; }
-  function color(i, ramp) { return ramp ? 'var(--r' + (i + 1) + ')' : 'var(--c' + ((i % MAX_SLICES) + 1) + ')'; }
+  function color(i, ramp, tn) {
+    if (tn) return 'var(--s' + tn[i] + ')';
+    return ramp ? 'var(--r' + (i + 1) + ')' : 'var(--c' + ((i % MAX_SLICES) + 1) + ')';
+  }
+
+  // ── Warna bermakna: Ya/Setuju/Relevan = hijau … Tidak/Hapus = merah (dibaca dari teks opsi) ──
+  const POS_RE = /\b(ya|setuju|sangat|sesuai|relevan|baik|puas|benar|cocok|paham|memahami|jelas|bagus|mendukung|terima|menerima|lengkap|tepat|layak)\b/;
+  function tone(label) {
+    const n = String(label).toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
+    if (/\btidak (memahami|paham|tahu|yakin|mengerti)\b|\b(netral|abstain|lainnya|entah)\b/.test(n)) return 0;
+    if (/^tidak\b|^belum\b|\bsangat tidak\b|\bhapus|\btolak|\bburuk\b|\bsalah\b|\bkurang (baik|setuju|sesuai)\b/.test(n)) return 1;
+    if (POS_RE.test(n) && /\b(tetapi|tapi|namun|dengan catatan|sedikit|asal)\b/.test(n)) return 4;
+    if (/\b(revisi|direvisi|diubah|ubah|ditambah|ditambahkan|diperjelas|disempurnakan|penyempurnaan|perbaikan|diperbaiki|perlu|kurang)\b/.test(n)) return 2;
+    if (/\b(cukup|sedang|ragu|biasa|sebagian|kadang|mungkin)\b/.test(n)) return 3;
+    if (POS_RE.test(n)) return 5;
+    return null;
+  }
+  // Tingkat 0–5 per opsi bila pilihannya memang berbau setuju/tidak; selain itu null (pakai warna biasa).
+  function tones(opsi) {
+    const t = opsi.map(function (o) { return tone(o.label); });
+    const known = t.filter(function (x) { return x !== null; });
+    if (known.length < Math.max(2, Math.ceil(t.length * 0.6))) return null;
+    if (!known.some(function (x) { return x >= 4; }) || !known.some(function (x) { return x === 1 || x === 2; })) return null;
+    return t.map(function (x) { return x === null ? 0 : x; });
+  }
 
   // ── Tooltip (satu untuk seluruh halaman; sentuh = ketuk) ──
   let tipEl = null;
@@ -43,11 +67,11 @@
   window.addEventListener('scroll', hideTip, { passive: true });
 
   // ── Legenda ──
-  function legend(items, total, ramp) {
+  function legend(items, total, ramp, tn) {
     const ul = el('ul', 'legend');
     items.forEach(function (o, i) {
       const li = el('li');
-      const dot = el('span', 'dot'); dot.style.background = color(i, ramp);
+      const dot = el('span', 'dot'); dot.style.background = color(i, ramp, tn);
       li.append(dot, el('span', 'lg-label', o.label), el('b', '', fmt(pct(o.jumlah, total)) + '%'));
       ul.append(li);
     });
@@ -56,6 +80,7 @@
 
   // ── Donat ──
   function donut(q) {
+    const tn = tones(q.opsi);
     const total = q.opsi.reduce(function (s, o) { return s + o.jumlah; }, 0);
     const wrap = el('div', 'donut-wrap');
     const s = svg('svg', { viewBox: '0 0 120 120', class: 'donut', role: 'img', 'aria-label': q.teks });
@@ -70,7 +95,7 @@
       const seg = svg('circle', {
         cx: 60, cy: 60, r: 46, fill: 'none', 'stroke-width': 13, pathLength: 100, class: 'donut-seg',
         'stroke-dasharray': Math.max(0.2, len - gap) + ' ' + (100 - Math.max(0.2, len - gap)),
-        'stroke-dashoffset': -start, transform: 'rotate(-90 60 60)', stroke: color(i)
+        'stroke-dashoffset': -start, transform: 'rotate(-90 60 60)', stroke: color(i, false, tn)
       });
       seg.style.setProperty('--d', (i * 90) + 'ms');
       tip(seg, o.label + ' · ' + o.jumlah + ' (' + fmt(pct(o.jumlah, total)) + '%)');
@@ -82,15 +107,15 @@
     mid.append(el('strong', '', lead ? fmt(Math.round(pct(lead.o.jumlah, total))) + '%' : '–'));
     wrap.append(mid);
     const box = el('div', 'donut-box');
-    box.append(wrap, legend(q.opsi, total));
+    box.append(wrap, legend(q.opsi, total, false, tn));
     return box;
   }
 
   // ── Batang mendatar ──
-  function bars(q) {
+  function bars(q, tn) {
     const wrap = el('div', 'bars');
     const max = q.opsi.reduce(function (m, o) { return Math.max(m, o.jumlah); }, 0);
-    q.opsi.forEach(function (o) {
+    q.opsi.forEach(function (o, oi) {
       const p = pct(o.jumlah, q.n);
       const row = el('div', 'bar-row' + (max > 0 && o.jumlah === max ? ' top' : ''));
       const head = el('div', 'bar-head');
@@ -98,6 +123,7 @@
       const track = el('div', 'bar-track');
       const fill = el('span', 'bar-fill');
       fill.style.setProperty('--w', p + '%');
+      if (tn) fill.style.background = 'var(--s' + tn[oi] + ')';
       track.append(fill);
       tip(row, o.label + ' · ' + o.jumlah + ' (' + fmt(p) + '%)');
       row.append(head, track);
@@ -149,18 +175,36 @@
     return wrap;
   }
 
-  function texts(q) {
-    const d = el('details', 'texts');
-    d.append(el('summary', '', q.jawaban.length + ' jawaban'));
-    const ul = el('ul');
-    q.jawaban.forEach(function (j) {
-      const li = el('li');
-      li.append(el('span', '', j.isi));
-      if (j.nama) li.append(el('small', '', j.nama));
-      ul.append(li);
+  // ── Jawaban teks: kartu geser kiri/kanan (swipe, panah, atau tombol) ──
+  function texts(q, admin) {
+    const list = q.jawaban || [];
+    const box = el('div', 'qa');
+    if (!list.length) return box;
+    box.setAttribute('role', 'group'); box.setAttribute('aria-roledescription', 'carousel'); box.setAttribute('aria-label', 'Jawaban: ' + q.teks);
+    const track = el('div', 'qa-track'); track.tabIndex = 0;
+    list.forEach(function (j, i) {
+      const c = el('figure', 'qa-card');
+      c.append(el('blockquote', '', j.isi));
+      if (admin && j.nama) c.append(el('figcaption', '', j.nama));
+      track.append(c);
     });
-    d.append(ul);
-    return d;
+    const bar = el('div', 'qa-bar');
+    const prev = el('button', 'qa-btn'); prev.type = 'button'; prev.setAttribute('aria-label', 'Jawaban sebelumnya'); prev.append(App.svg('chevleft'));
+    const next = el('button', 'qa-btn'); next.type = 'button'; next.setAttribute('aria-label', 'Jawaban berikutnya'); next.append(App.svg('chevright'));
+    const pos = el('span', 'qa-pos');
+    bar.append(prev, pos, next);
+    function idx() { return Math.max(0, Math.min(list.length - 1, Math.round(track.scrollLeft / Math.max(1, track.clientWidth)))); }
+    function sync() { const i = idx(); pos.textContent = (i + 1) + ' / ' + list.length; prev.disabled = i === 0; next.disabled = i === list.length - 1; }
+    function go(d) { track.scrollTo({ left: (idx() + d) * track.clientWidth, behavior: 'smooth' }); }
+    prev.addEventListener('click', function () { go(-1); });
+    next.addEventListener('click', function () { go(1); });
+    track.addEventListener('scroll', function () { window.requestAnimationFrame(sync); });
+    track.addEventListener('keydown', function (e) {
+      if (e.key === 'ArrowRight') { e.preventDefault(); go(1); } else if (e.key === 'ArrowLeft') { e.preventDefault(); go(-1); }
+    });
+    box.append(track, bar);
+    sync();
+    return box;
   }
 
   // ── Tabel (pengganti grafik, untuk keterbacaan) ──
@@ -200,7 +244,7 @@
       body.append(el('p', 'none', 'Belum ada jawaban.'));
     } else if (q.opsi) {
       const donutOk = q.tipe !== 'centang' && q.opsi.length >= 2 && q.opsi.length <= MAX_SLICES;
-      body.append(donutOk ? donut(q) : bars(q));
+      body.append(donutOk ? donut(q) : bars(q, tones(q.opsi)));
       if (q.tipe === 'centang') body.append(el('p', 'tagline', 'bisa lebih dari satu'));
       hasTable = true;
     } else if (q.skala) {
@@ -214,9 +258,9 @@
       if (admin && q.kata && q.kata.length) {
         body.append(el('p', 'tagline', 'Saran kata kunci: ' + q.kata.slice(0, 12).map(function (k) { return k.kata + ' (' + k.jumlah + ')'; }).join(', ')));
       }
-      if (admin && q.jawaban) body.append(texts(q));
+      if (q.jawaban && q.jawaban.length) body.append(texts(q, admin));
     } else if (q.jawaban) {
-      body.append(texts(q));
+      body.append(texts(q, admin));
     } else {
       body.append(el('p', 'none', 'Isi jawaban tidak ditampilkan di halaman publik.'));
     }
@@ -257,9 +301,10 @@
     list.forEach(function (best) {
       const sec = el('div', 'ov-sec');
       const opsi = best[0].q.opsi;
-      const ramp = opsi.length > MAX_SLICES;
+      const tn = tones(opsi);
+      const ramp = !tn && opsi.length > MAX_SLICES;
       if (list.length > 1) sec.append(el('h3', 'ov-title', best[0].q.teks));
-      const lg = legend(opsi.map(function (o) { return { label: o.label, jumlah: 0 }; }), 1, ramp);
+      const lg = legend(opsi.map(function (o) { return { label: o.label, jumlah: 0 }; }), 1, ramp, tn);
       lg.querySelectorAll('b').forEach(function (n) { n.remove(); });
       sec.append(lg);
       const rows = el('div', 'stack-list');
@@ -271,9 +316,9 @@
         r.q.opsi.forEach(function (o, i) {
           if (!o.jumlah) return;
           const p = pct(o.jumlah, total);
-          const seg = el('span', 'seg' + (ramp ? ' rk' + i : ''), p >= 14 ? Math.round(p) + '%' : '');
+          const seg = el('span', 'seg' + (tn ? ' sem t' + tn[i] : ramp ? ' rk' + i : ''), p >= 14 ? Math.round(p) + '%' : '');
           seg.style.flexGrow = String(o.jumlah);
-          seg.style.background = color(i, ramp);
+          seg.style.background = color(i, ramp, tn);
           tip(seg, r.label + ' · ' + o.label + ' · ' + o.jumlah + ' (' + fmt(p) + '%)');
           track.append(seg);
         });

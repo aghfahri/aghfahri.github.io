@@ -18,6 +18,8 @@
     link: '<path d="M10 13a5 5 0 0 0 7.07 0l3-3a5 5 0 0 0-7.07-7.07l-1.5 1.5"/><path d="M14 11a5 5 0 0 0-7.07 0l-3 3a5 5 0 0 0 7.07 7.07l1.5-1.5"/>',
     folder: '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
     chevron: '<path d="M9 6l6 6-6 6"/>',
+    chevleft: '<path d="M15 6l-6 6 6 6"/>',
+    chevright: '<path d="M9 6l6 6-6 6"/>',
     arrow: '<path d="M7 17L17 7M8 7h9v9"/>',
     back: '<path d="M15 6l-6 6 6 6"/>',
     sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
