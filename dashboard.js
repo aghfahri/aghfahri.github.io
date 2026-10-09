@@ -46,7 +46,7 @@
       t.append(el('strong', '', value), el('span', '', label));
       kpi.append(t);
     }
-    tile('hero', String(d.total), 'responden');
+    tile('main', String(d.total), 'responden');
     tile('', String(d.hari_ini || 0), 'hari ini');
     if (skor.length) {
       const w = skor.reduce(function (s, x) { return s + x.n; }, 0);
