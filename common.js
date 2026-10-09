@@ -55,6 +55,12 @@
   };
 
   // ── Alamat ──
+  // Tautan Google Drive (…/file/d/ID/view, open?id=ID, uc?id=ID) diubah jadi alamat gambar langsung.
+  App.imgUrl = function (u) {
+    u = String(u || '').trim();
+    const m = u.match(/^https:\/\/(?:drive|docs)\.google\.com\/(?:file\/d\/|open\?(?:[^#]*&)?id=|uc\?(?:[^#]*&)?id=)([\w-]{10,})/);
+    return m ? 'https://drive.google.com/thumbnail?id=' + m[1] + '&sz=w1600' : u;
+  };
   App.safeUrl = function (u) {
     try {
       const x = new URL(String(u || ''));
@@ -84,7 +90,7 @@
       box.classList.add('icon-emoji');
       box.textContent = isi;
     } else if (jenis === 'gambar' && isi) {
-      const src = safeHttps(isi);
+      const src = safeHttps(App.imgUrl(isi));
       if (src) {
         const img = new Image();
         img.alt = '';

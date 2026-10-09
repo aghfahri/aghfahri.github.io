@@ -522,7 +522,7 @@
     const tw = field('Teks bacaan (opsional)', ta, 'Contoh: kutipan pasal atau penjelasan yang dibaca dulu sebelum menjawab.');
     tw.insertBefore(richBar(ta), ta);
     card.append(tw);
-    card.append(field('Gambar (opsional, alamat https)', input(b, 'gambar', { type: 'url', max: 500, ph: 'https://…' })));
+    card.append(field('Gambar (opsional, alamat https)', input(b, 'gambar', { type: 'url', max: 500, ph: 'https://… atau link Google Drive' })));
 
     const qh = mk('div', 'qs');
     b.questions.forEach(function (q, qi) { qh.append(renderQuestion(b, q, qi)); });

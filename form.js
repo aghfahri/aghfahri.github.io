@@ -207,10 +207,11 @@
   function buildBlock(b, heading) {
     const sec = el('section', 'card');
     if (heading) sec.append(el('h2', 'block-title', heading));
-    const img = App.safeUrl(b.gambar);
+    const img = App.safeUrl(App.imgUrl(b.gambar));
     if (img && /^https:/.test(img)) {
       const im = new Image();
-      im.className = 'block-img'; im.alt = ''; im.loading = 'lazy'; im.referrerPolicy = 'no-referrer'; im.src = img;
+      im.className = 'block-img'; im.alt = ''; im.loading = 'lazy'; im.referrerPolicy = 'no-referrer'; im.onerror = function () { im.remove(); };
+      im.src = img;
       sec.append(im);
     }
     if (b.teks) {
